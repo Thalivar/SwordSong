@@ -204,7 +204,42 @@ class Database:
         except sqlite3.Error as e:
             print(f"There was an error while removing the item {itemName} from the inventory of {userID}: {e}")
             return False
+
+    # === Equips an item to a character ===
+    def equipitem(self, userID: str, slot: str, itemName: str) -> bool:
+        try:
+            self.cursor.execute("INSERT OR REPLACE INTO equipment (userID, slot, itemName) VALUES (?, ?, ?)", (userID, slot, itemName))
+            self.conn.commit()
+            return True
+        except sqlite3.Error as e:
+            print(f"There was an error while equipping the item; {e}")
+            return False
         
+    # === Gets all the equipment items of a character ===
+    def getEquipment(self, userID: str) -> dict[str, str]:
+        try:
+            self.cursor.execute("SELECT slot, itemName FROM equipment WHERE userID = ?", (userID,))
+            return dict(self.cursor.fetchall())
+        except sqlite3.Error as e:
+            print(f"There was an error while fetching the equipment of {userID}: {e}")
+            return {}
+        
+    # === unequips the item from a character ===
+    def unequipItem(self, userID: str, slot: str) -> bool:
+        try:
+            self.cursor.execute("DELETE FROM equipment WHERE userID = ? AND slot = ?", (userID, slot))
+            self.conn.commit()
+            return True
+        except sqlite3.Error as e:
+            print(f"There was an error while unequipping the item from {userID} in slot {slot}: {e}")
+            return False
+        
+    # === Self note: Add shop management methods here ===
+
     # === Closes the database connection when the object is deleted ===
     def __del__(self):
-        self.conn.close()
+        try:
+            if hasattr(self, 'conn'):
+                self.conn.close()
+        except:
+            pass # <= Ignores errors dring th cleanup proccess
