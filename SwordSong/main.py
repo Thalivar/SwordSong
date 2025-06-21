@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 from discord.ext.commands import cooldowns, BucketType
 from dotenv import load_dotenv
-from database import DataBase
+from database import Database
 from pathlib import Path
 import asyncio
 import random
@@ -21,7 +21,7 @@ if not TOKEN:
 intents = discord.Intents.default()
 intents.message_content = True
 client = commands.Bot(command_prefix=".", intents = intents)
-db = DataBase()
+#db = Database()
 
 
 client.run(TOKEN)
