@@ -1,6 +1,7 @@
 🗡️ SwordSong
 
-SwordSong is a text-based RPG Discord bot set in the dark fantasy realm of Azefarnia, where players take on the role of adventurers in a crumbling world of monsters, guilds, and powerful artifacts. Inspired by gothic fantasy and classic RPG systems, SwordSong offers a command-driven adventure experience through Discord.
+SwordSong is a text-based RPG Discord bot set in the dark fantasy realm of Azefarnia, where players take on the role of adventurers in a crumbling world of monsters, guilds, and powerful artifacts. It's inspired by gothic fantasy and classic RPG systems, SwordSong offers a command-driven adventure experience through Discord.
+
 ✨ Features
 
     Create and customize a character to join the SwordSong guild
@@ -15,18 +16,19 @@ SwordSong is a text-based RPG Discord bot set in the dark fantasy realm of Azefa
 
 🔮 Current Commands
 Command	Description
-.start	Begin your journey and create a character
-.profile	View your character’s current stats and name
-.inventory	Display your current item collection
-.shop	View available items for purchase
-.buy <item>	Purchase an item from the shop
-.sell <item>	Sell an item from your inventory
-.equip <item>	Equip a weapon or armor from your inventory
-.unequip <item>	Unequip your currently equipped item
-.adventure	Embark on an adventure and fight monsters
-.resetdata	Reset your character and leave the guild (with confirmation prompt)
-.help	Show all available commands
-🔧 Planned Features
+    .start	Begin your journey and create a character
+    .profile	View your character’s current stats and name
+    .inventory	Display your current item collection
+    .shop	View available items for purchase
+    .buy <item>	Purchase an item from the shop
+    .sell <item>	Sell an item from your inventory
+    .equip <item>	Equip a weapon or armor from your inventory
+    .unequip <item>	Unequip your currently equipped item
+    .adventure	Embark on an adventure and fight monsters
+    .resetdata	Reset your character and leave the guild (with confirmation prompt)
+    .help	Show all available commands
+
+🔧 Some planned Features
 
     ⚔️ PvP Combat System — Duel other players in the guild and rise in the ranks.
 
