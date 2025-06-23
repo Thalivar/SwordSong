@@ -1,6 +1,6 @@
 import discord
 from discord.ext import commands
-from discord.ext.commands import cooldowns, BucketType
+from discord.ext.commands import cooldown, BucketType
 from dotenv import load_dotenv
 from database import Database
 from pathlib import Path
@@ -20,7 +20,7 @@ if not TOKEN:
 # === Setup the Bot ===
 intents = discord.Intents.default()
 intents.message_content = True
-client = commands.Bot(command_prefix=".", intents = intents)
+client = commands.Bot(command_prefix=".", intents = intents, help_command = None, case_insensitive = True)
 db = Database()
 
 # === Get the directory to data folder ===
@@ -44,7 +44,7 @@ except json.JSONDecodeError as e:
 # === Sets the bot's activity feed and prints a message when the bot is ready ===
 @client.event
 async def on_ready():
-    await client.change_presence(activity = discord.Activity(type = discord.ActivityType.watching, name = "Over the Azefarnia"))
+    await client.change_presence(activity = discord.Activity(type = discord.ActivityType.watching, name = "Over Azefarnia"))
     print(f"Logged in as {client.user}")
 
 # === error handling for commands ===
@@ -58,10 +58,11 @@ async def on_command_error(ctx, error):
 # === Help command to show all available commands ===
 @client.command()
 async def help(ctx):
+    print("Custom help command called by", ctx.author.name )
     embed = discord.Embed(
         title = "SwordSong Help",
         description = "List of the available commands",
-        color = discord.Color.Purple()
+        color = discord.Color.purple()
     )
 
     embed.add_field(name = ".start", value = "Start your adventure for the guild SwordSong in Azefarnia", inline = False)
@@ -73,5 +74,104 @@ async def help(ctx):
     embed.add_field(name = ".equip <item>", value = "Equip a weapon or armor from your inventory", inline = False)
     embed.add_field(name = ".unequip <item>", value = "unequip a weapon or armor that you're currently wearing", inline = False)
     embed.add_field(name = ".adventure", value = "Go on an adventure to hunt monsters and earn loot", inline = False)
+
+    await ctx.send(embed=embed)
+
+# === Command to create an character to use the rpg commands ===
+@client.command()
+async def start(ctx):
+    print("Start command was called by", ctx.author.name)
+    userID = str(ctx.author.id)
+    if db.getCharacter(userID):
+        embed = discord.Embed(
+            title = "You're already part of the guild.",
+            description = "Yu're already enlisted into SwordSong, you unfortunatly cant enroll again.",
+            color = discord.Color.red()
+        )
+        await ctx.send(embed = embed)
+        return
+    
+    embed = discord.Embed(
+        title = "Welcome Adventurer!",
+        description = "Welcome to SwordSong! What would you like to be called?",
+        color = discord.Color.orange()
+    )
+    await ctx.send(embed = embed)
+
+    def check(m):
+        return m.author == ctx.author and m.channel == ctx.channel
+    
+    try:
+        msg = await client.wait_for('message', timeout = 30.0, check = check)
+        if db.createCharacter(userID, msg.content):
+            embed = discord.Embed(
+                title = "Welcome to SwordSong!",
+                description = f"Welcome, {msg.content}! You're adventure across Azefarnia begins now.",
+                color = discord.Color.green()
+            )
+            await ctx.send(embed = embed)
+        else:
+            await ctx.send("An problem occured while trying to enlist you into SwordSong.")
+    except asyncio.TimeoutError:
+        embed = discord.Embed(
+            title = "Timeout",
+            description = "You unfortunatly took to long to write down your name. Please try again",
+            color = discord.Color.red()
+        )
+        await ctx.send(embed = embed)
+
+
+
+
+# === Test commands to make sure things work correctly ===
+
+# === Resets your character data (might make this into an actual command to reset progress) ===
+@client.command()
+@cooldown(1, 15, BucketType.user)
+async def resetdata(ctx):
+    print("Character reset command was called by", ctx.author.name)
+    userID = str(ctx.author.id)
+    if not db.getCharacter(userID):
+        embed = discord.Embed(
+            title = "You're not part of the guild.",
+            description = "You're not part of SwordSong, so you're not able to leave the guild.",
+            color = discord.Color.red()
+        )
+        await ctx.send(embed = embed)
+        return
+    
+    embed = discord.Embed(
+        title = "Character Reset",
+        description = "Are you sure you want to leave the guild? This action cannot be undone.\nType 'yes' to confirm you want to leave.",
+        color = discord.Color.orange()
+    )
+    await ctx.send(embed = embed)
+
+    def check(m):
+        return m.author == ctx.author and m.channel == ctx.channel
+    
+    try:
+        await client.wait_for('message', timeout = 30.0, check = check)
+        if db.deleteCharacter(userID):
+            embed = discord.Embed(
+                title = "You left the guild.",
+                description = "You succsessfully left the guild. If you wish to rejoin use '.start' to join SwordSong again.",
+                color = discord.Color.green()
+            )
+            await ctx.send(embed = embed)
+        else:
+            embed = discord.Embed(
+                title = "A problem arrised while trying to remove you from the guild.",
+                description = "Please try to leave the guild again '.resetdata' if you really wish to leave.",
+                color = discord.Color.orange()
+            )
+            await ctx.send(embed = embed)
+    except asyncio.TimeoutError:
+        embed = discord.Embed(
+            title = "Timeout",
+            description = "You were thinking for a long time, if you really wish to continue please use '.resetdata' again.",
+            color = discord.Color.orange()
+        )
+        await ctx.send(embed = embed)
 
 client.run(TOKEN)

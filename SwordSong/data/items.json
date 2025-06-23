@@ -1,0 +1,201 @@
+{
+    "shop": [
+        {
+            "name": "Health Potion",
+            "buy_price": 50,
+            "sell_price": 25,
+            "type": "consumable",
+            "effect": {"heal": 50},
+            "description": "Restores 50 health when consumed"
+        },
+        {
+            "name": "Mana Potion",
+            "buy_price": 50,
+            "sell_price": 25,
+            "type": "consumable",
+            "effect": {"mana": 50},
+            "description": "Restores 50 mana when consumed"
+        },
+        {
+            "name": "Big Health Potion",
+            "buy_price": 200,
+            "sell_price": 100,
+            "type": "consumable",
+            "effect": {"heal": 200},
+            "description": "Restores 200 health when consumed"
+        },
+        {
+            "name": "Wooden Sword",
+            "buy_price": 100,
+            "sell_price": 50,
+            "type": "equipment",
+            "slot": "weapon",
+            "effect": {"attack": 5},
+            "description": "A basic wooden sword"
+        },
+        {
+            "name": "Iron Sword",
+            "buy_price": 500,
+            "sell_price": 250,
+            "type": "equipment",
+            "slot": "weapon",
+            "effect": {"attack": 15},
+            "description": "A sturdy iron sword"
+        },
+        {
+            "name": "Wooden Shield",
+            "buy_price": 100,
+            "sell_price": 50,
+            "type": "equipment",
+            "slot": "shield",
+            "effect": {"defense": 5},
+            "description": "A basic wooden shield"
+        },
+        {
+            "name": "Iron Shield",
+            "buy_price": 500,
+            "sell_price": 250,
+            "type": "equipment",
+            "slot": "shield",
+            "effect": {"defense": 15},
+            "description": "A sturdy iron shield"
+        },
+        {
+            "name": "Leather Helmet",
+            "buy_price": 50,
+            "sell_price": 25,
+            "type": "equipment",
+            "slot": "helmet",
+            "effect": {"defense": 10, "health": 20},
+            "description": "Basic leather armor for protection"
+        },
+        {
+            "name": "Leather Chestplate",
+            "buy_price": 100,
+            "sell_price": 50,
+            "type": "equipment",
+            "slot": "chestplate",
+            "effect": {"defense": 15, "health": 30},
+            "description": "Basic leather armor for protection"
+        },
+        {
+            "name": "Leather Leggings",
+            "buy_price": 75,
+            "sell_price": 35,
+            "type": "equipment",
+            "slot": "leggings",
+            "effect": {"defense": 10, "health": 25},
+            "description": "Basic leather armor for protection"
+        },
+        {
+            "name": "Leather Boots",
+            "buy_price": 50,
+            "sell_price": 25,
+            "type": "equipment",
+            "slot": "boots",
+            "effect": {"defense": 5, "health": 15},
+            "description": "Basic leather armor for protection"
+        },
+        {
+            "name": "Chainmail Helmet",
+            "buy_price": 150,
+            "sell_price": 75,
+            "type": "equipment",
+            "slot": "helmet",
+            "effect": {"defense": 15, "health": 25},
+            "description": "Chainmail armor for better protection"
+        },
+        {
+            "name": "Chainmail Chestplate",
+            "buy_price": 300,
+            "sell_price": 150,
+            "type": "equipment",
+            "slot": "chestplate",
+            "effect": {"defense": 20, "health": 40},
+            "description": "Chainmail armor for better protection"
+        },
+        {
+            "name": "Chainmail Leggings",
+            "buy_price": 225,
+            "sell_price": 110,
+            "type": "equipment",
+            "slot": "leggings",
+            "effect": {"defense": 15, "health": 35},
+            "description": "Chainmail armor for better protection"
+        },
+        {
+            "name": "Chainmail Boots",
+            "buy_price": 150,
+            "sell_price": 75,
+            "type": "equipment",
+            "slot": "boots",
+            "effect": {"defense": 10, "health": 30},
+            "description": "Chainmail armor for better protection"
+        },
+        {
+            "name": "Iron Helmet",
+            "buy_price": 250,
+            "sell_price": 125,
+            "type": "equipment",
+            "slot": "helmet",
+            "effect": {"defense": 25, "health": 35},
+            "description": "Sturdy iron armor for better protection"
+
+        },
+        {
+            "name": "iron Chestplate",
+            "buy_price": 500,
+            "sell_price": 250,
+            "type": "equipment",
+            "slot": "chestplate",
+            "effect": {"defense": 30, "health": 60},
+            "description": "Sturdy iron armor for better protection"
+        },
+        {
+            "name": "Iron Leggings",
+            "buy_price": 375,
+            "sell_price": 185,
+            "type": "equipment",
+            "slot": "leggings",
+            "effect": {"defense": 25, "health": 50},
+            "description": "Sturdy iron armor for better protection"
+        },
+        {
+            "name": "Iron Boots",
+            "buy_price": 250,
+            "sell_price": 125,
+            "type": "equipment",
+            "slot": "boots",
+            "effect": {"defense": 20, "health": 40},
+            "description": "Sturdy iron armor for better protection"
+        },
+        {
+            "name": "Iron Ingot",
+            "buy_price": 100,
+            "sell_price": 50,
+            "type": "crafting",
+            "description": "Used in crafting metal equipment"
+        },
+        {
+            "name": "Leather",
+            "buy_price": 50,
+            "sell_price": 25,
+            "type": "crafting",
+            "description": "Used in crafting leather equipment"
+        },
+        {
+            "name": "Wood",
+            "buy_price": 20,
+            "sell_price": 10,
+            "type": "crafting",
+            "description": "Basic crafting material"
+        },
+        {
+            "name": "String",
+            "buy_price": 30,
+            "sell_price": 15,
+            "type": "crafting",
+            "description": "Used in various crafting recipes"
+        }
+    ]
+}
