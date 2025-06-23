@@ -1,0 +1,221 @@
+
+{
+    "areas": {
+        "forest": {
+            "Description": "A dense and dark forest that is filled with towering trees and a ligt mist.",
+            "levelRequirement": 1,
+            "monsters": [
+                {
+                    "name": "Bunny",
+                    "health": 20,
+                    "attack": 11,
+                    "defense": 1,
+                    "xpReward": 10,
+                    "rarity": "common",
+                    "description": "A small and fluffy bunny. It looks harmless but it can be quite quick if you don't watch out",
+                    "lootTable": {
+                        "Carrot": {
+                            "chance": 80,
+                            "quantity": [1, 4],
+                            "guaranteed": true,
+                            "sellPrice": 2,
+                            "description": "A fresh Carrot."
+                        },
+                        "Bunny's Fur": {
+                            "chance": 15,
+                            "quantity": [1, 2],
+                            "guaranteed": false,
+                            "sellPrice": 5,
+                            "description": "Some soft fur from a bunny."
+                        },
+                        "Bunny's Foot": {
+                            "chance": 5,
+                            "quantity": 1,
+                            "guaranteed": false,
+                            "sellPrice": 20,
+                            "description": "A lucky charm that is made from a bunny's foot."
+                        }
+                    }
+                },
+                {
+                    "name": "Wolf",
+                    "health": 20,
+                    "attack": 5,
+                    "defense": 5,
+                    "xpReward": 15,
+                    "rarity": "common",
+                    "description": "A fierce wolf that often hunts in packs. It has sharp teeth so be cautious.",
+                    "lootTable": {
+                        "Wolf Pelt": {
+                            "chance": 80,
+                            "quantity": [1, 2],
+                            "guaranteed": true,
+                            "sellPrice": 4,
+                            "description": "A thick piece of wolf pelt, perfect for crafting warm clothes."
+                        },
+                        "Wolf Bone": {
+                            "chance": 20,
+                            "quantity": 1,
+                            "guaranteed": false,
+                            "sellPrice": 6,
+                            "description": "A strudy piece of a wolf's bone."
+                        }
+                    }
+                },
+                {
+                    "name": "Boar",
+                    "health": 30,
+                    "attack": 15,
+                    "defense": 2,
+                    "xpReward": 30,
+                    "rarity": "uncommon",
+                    "description": "A wild boar that are know to be quite aggressive. They have sharp tusks so watch out.",
+                    "lootTable": {
+                        "Boar Pelt": {
+                            "chance": 50,
+                            "quantity": [1, 2],
+                            "guaranteed": true,
+                            "sellPrice": 8,
+                            "description": "A thick peice of boar pelt, it's know for one of the best materials for clothing."
+                        },
+                        "Boar meat": {
+                            "chance": 30,
+                            "quantity": [1, 3],
+                            "guaranteed": true,
+                            "sellPrice": 5,
+                            "description": "Fresh boar meat, it's a bit tough but it's know for being quite flavorful."
+                        },
+                        "Boar Tusk": {
+                            "chance": 20,
+                            "quantity": 1,
+                            "guaranteed": false,
+                            "sellPrice": 15,
+                            "description": "Boar tusks are know to be quite sharp and can be turned into a decent dagger."
+                        }
+                    }
+                },
+                {
+                    "name": "Bear",
+                    "health": 30,
+                    "attack": 20,
+                    "defense": 5,
+                    "xpReward": 50,
+                    "rarity": "uncommon",
+                    "description": "A large fierce bear that are known to be quite territorial. They have sharp claws and run quite fast.",
+                    "lootTalbe": {
+                        "Bear Pelt": {
+                            "chance": 70,
+                            "quantity": [1, 2],
+                            "guaranteed": true,
+                            "sellPrice": 5,
+                            "description": "A thick and sturdy peice of bear pelt, it's great for leatherworking."
+                        },
+                        "Bear Claw": {
+                            "chance": 30,
+                            "quantity": 1,
+                            "guaranteed": false,
+                            "sellPrice": 20,
+                            "description": "A sharp bear claw, it's often used as a trophy or as a pendant."
+                        }
+                    }
+                },
+                {
+                    "name": "Treant",
+                    "health": 50,
+                    "attack": 13,
+                    "defense": 8,
+                    "xpReward": 35,
+                    "rarity": "rare",
+                    "description": "Mystical tree-like creatures that are protectors of this forest. They are know to use quite powerful nature magic, so be catious of the trees around you.",
+                    "lootTable": {
+                        "Treant Bark": {
+                            "chance": 60,
+                            "quantity": [1, 2],
+                            "guaranteed": true,
+                            "sellPrice": 5,
+                            "description": "A durable piece of bark from a treant, it's often used to craft furniture."
+                        },
+                        "Treant Sap": {
+                            "chance": 30,
+                            "quantity": [1, 3],
+                            "guaranteed": false,
+                            "sellPrice": 10,
+                            "description": "A sticky sap that is know for it's magical healting properties."
+                        },
+                        "Treant Heartwood": {
+                            "chance": 10,
+                            "quantity": 1,
+                            "guaranteed": false,
+                            "sellprice": 20,
+                            "description": "The Heardwood of a treant often refered to it's 'heart'. It's a rare and valuable material that is used in creafting high-quality and powerful weapons and shields."
+                        }
+                    }
+                },
+                {
+                    "name": "Fairy",
+                    "health": 15,
+                    "attack": 8,
+                    "defense": 3,
+                    "xpReward": 30,
+                    "rarity": "legendary",
+                    "description": "A small and unique creature that is known for it's magical appearence. They are rarely seen by humans, but they are known to be quite mischievous if you come across one.",
+                    "lootTable": {
+                        "Fairy Dust": {
+                            "chance": 50,
+                            "quantity": [1, 3],
+                            "guaranteed": true,
+                            "sellPrice": 15,
+                            "description": "Sparking dust that appears once the fairy is defeated. It's known by it's sparkling appearance and is used in various potions and echants"
+                        },
+                        "Fairy Wing": {
+                            "chance": 30,
+                            "quantity": 1,
+                            "guaranteed": false,
+                            "sellPrice": 30,
+                            "description": "A delicate wing from a fairy. It's often used in high-quality accessories."
+                        },
+                        "Fairy Heart": {
+                            "chance": 20,
+                            "quantity": 1,
+                            "guaranteed": false,
+                            "sellPrice": 50,
+                            "description": "A rare and unique item that is said to contain the essence of the fairy you got this from. It's used to enhance ones magical abilities."
+                        }
+                    }
+                },
+                {
+                    "name": "Wolf King",
+                    "health": 50,
+                    "attack": 20,
+                    "defense": 10,
+                    "xpReward": 100,
+                    "rarity": "boss",
+                    "description": "The Wolf King is a massive and powerful wolf that rules over this forest. It's know to be able to defeat even the most powerful warriors, so be prepared for a tough fight with this powerful and cunning beast.",
+                    "lootTable": {
+                        "Wolf King's Pelt": {
+                            "chance": 70,
+                            "quantity": [1, 2],
+                            "guaranteed": true,
+                            "sellPrice": 15,
+                            "description": "People say even the strongest swords can't cut through the Wolf Kings's pelt. Hence it's a highly sought after material for crafting high-quality leather armor."
+                        },
+                        "Wolf King's Fang": {
+                            "chance": 25,
+                            "quantity": 1,
+                            "guaranteed": false,
+                            "sellPrice": 20,
+                            "description": "A massive and sharp fang from the Wolf King. It's used to make the most powerful daggers."
+                        },
+                        "Wolf King's Essence": {
+                            "chance": 5,
+                            "quantity": 1,
+                            "guaranteed": false,
+                            "sellPrice": 50,
+                            "description": "A rare and powerful item that is said to contain the essence of the Wolf King itself. Word goes around that it can be used to enchance powerful weapons to even greater heights."
+                        }
+                    }
+                }
+            ]
+        }
+    }
+}
