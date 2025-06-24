@@ -57,6 +57,7 @@ async def on_command_error(ctx, error):
 
 # === Help command to show all available commands ===
 @client.command()
+@cooldown(1, 4, BucketType.user)
 async def help(ctx):
     print("Custom help command called by", ctx.author.name )
     embed = discord.Embed(
@@ -79,6 +80,7 @@ async def help(ctx):
 
 # === Command to create an character to use the rpg commands ===
 @client.command()
+@cooldown(1, 4, BucketType.user)
 async def start(ctx):
     print("Start command was called by", ctx.author.name)
     userID = str(ctx.author.id)
@@ -122,7 +124,7 @@ async def start(ctx):
 
 # === Command to see your own player stats ===
 @client.command()
-@cooldown(1, 15, BucketType.user)
+@cooldown(1, 5, BucketType.user)
 async def profile(ctx):
     print("Character profile command was called by", ctx.author.name)
     character = db.getCharacter(str(ctx.author.id))
@@ -149,6 +151,22 @@ async def profile(ctx):
 
     await ctx.send(embed = embed)
 
+# === Fighting command to fight monsters ===
+@client.command()
+@cooldown(1, 5, BucketType.user)
+async def fight(ctx):
+    character = db.getCharacter(str(ctx.author.id))
+    if not character:
+        embed = discord.Embed(
+            title = "You're not part of the guild.",
+            description = "You're not part of SwordSong, so you're not able to see your profile.",
+            color = discord.Color.red()
+        )
+        await ctx.send(embed = embed)
+        return
+    
+    currentArea = character['currentArea']
+    monsterHP = monsters['health']
 
 
 
