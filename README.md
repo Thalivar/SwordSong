@@ -16,17 +16,17 @@ SwordSong is a text-based RPG Discord bot set in the dark fantasy realm of Azefa
 
 🔮 Current Commands
 Command	Description
-    .start	Begin your journey and create a character
-    .profile	View your character’s current stats and name
-    .inventory	Display your current item collection
-    .shop	View available items for purchase
-    .buy <item>	Purchase an item from the shop
-    .sell <item>	Sell an item from your inventory
-    .equip <item>	Equip a weapon or armor from your inventory
-    .unequip <item>	Unequip your currently equipped item
-    .adventure	Embark on an adventure and fight monsters
-    .resetdata	Reset your character and leave the guild (with confirmation prompt)
-    .help	Show all available commands
+    .start - Begin your journey and create a character
+    .profile - View your character’s current stats and name
+    .inventory - Display your current item collection
+    .shop - View available items for purchase
+    .buy <item> - Purchase an item from the shop
+    .sell <item> - Sell an item from your inventory
+    .equip <item> - Equip a weapon or armor from your inventory
+    .unequip <item> - Unequip your currently equipped item
+    .adventure - Embark on an adventure and fight monsters
+    .resetdata - Reset your character and leave the guild (with confirmation prompt)
+    .help - Show all available commands
 
 🔧 Some planned Features
 

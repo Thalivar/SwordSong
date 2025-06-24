@@ -120,6 +120,36 @@ async def start(ctx):
         )
         await ctx.send(embed = embed)
 
+# === Command to see your own player stats ===
+@client.command()
+@cooldown(1, 15, BucketType.user)
+async def profile(ctx):
+    print("Character profile command was called by", ctx.author.name)
+    character = db.getCharacter(str(ctx.author.id))
+    if not character:
+        embed = discord.Embed(
+            title = "You're not part of the guild.",
+            description = "You're not part of SwordSong, so you're not able to see your profile.",
+            color = discord.Color.red()
+        )
+        await ctx.send(embed = embed)
+        return
+    
+    embed = discord.Embed(
+        title = f"{character['name']}'s Profile",
+        color = discord.Color.blue()
+    )
+
+    embed.add_field(name = "level", value = character['level'], inline = True)
+    embed.add_field(name = "XP", value = f"{character['xp']} / {character['xpToLevel']}", inline = True)
+    embed.add_field(name = "Health", value = f"{character['health']} / {character['maxHealth']}", inline = True)
+    embed.add_field(name = "Attack", value = character['attack'], inline = True)
+    embed.add_field(name = "Defense", value = character['defense'], inline = True)
+    embed.add_field(name = "Coins", value = character['coins'], inline = True)
+
+    await ctx.send(embed = embed)
+
+
 
 
 
