@@ -6,10 +6,10 @@ class Database:
         self.db_path = Path(__file__).parent / "game.db"
         self.conn = sqlite3.connect(self.db_path)
         self.cursor = self.conn.cursor()
-        self.setup_database()
+        self.setupDatabase()
 
     # === Seting up the database ===
-    def setup_database(self):
+    def setupDatabase(self):
 
         # === Creates a character table ===
         self.cursor.execute(''' 
@@ -72,6 +72,33 @@ class Database:
                 effect TEXT,
                 description TEXT
             )''')
+        
+        # === Creates a table to track the amount of fights the character did ===
+        self.cursor.execute('''
+            CREATE TABLE IF NOT EXISTS fightStats (
+                userID TEXT PRIMARY KEY,
+                totalFights INTEGER DEFAULT 0,
+                fightsSinceBoss INTEGER DEFAUL 0,
+                lastFightTimestap INTEGER DEFAUL 0,
+                FOREIGN KEY (userID) REFERENCES characters(userID)
+            )''')
+        
+        # === A table to track the cooldowns of the skills of the character ===
+        self.cursor.execute('''
+            CREATE TABLE IF NOT EXISTS skillCooldowns (
+                userID TEXT,
+                skillName TEXT,
+                turnsRemaining INTEGER DEFAULT 0,
+                PRIMARY KEY (userID, skillName),
+                FOREIGN KEY (userID) REFERENCES characters(userID)
+            )''')
+        
+        # === Add a mana colums to already existing characters before i added mana ===
+        try:
+            self.cursor.execute("ALTER TABLE characters ADD COLUMN mana INTEGER DEFAULT 50")
+            self.cursor.execute("ALTER TABLE characters ADD COLUMN maxMana INTEGER DEFAULT 50")
+        except sqlite3.OperationalError:
+            pass
         
         self.conn.commit()
 
@@ -233,7 +260,7 @@ class Database:
         except sqlite3.Error as e:
             print(f"There was an error while unequipping the item from {userID} in slot {slot}: {e}")
             return False
-        
+    
     # === Self note: Add shop management methods here ===
 
     # === Closes the database connection when the object is deleted ===

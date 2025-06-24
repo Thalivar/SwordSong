@@ -166,7 +166,10 @@ async def fight(ctx):
         return
     
     currentArea = character['currentArea']
-    monsterHP = monsters['health']
+    monsters = areas['area'][currentArea]['monsters']
+    monster = random.choice(monsters)
+    monsterHP = monster['health']
+
 
 
 
