@@ -260,6 +260,99 @@ class Database:
         except sqlite3.Error as e:
             print(f"There was an error while unequipping the item from {userID} in slot {slot}: {e}")
             return False
+        
+    # === Fighting mechanics management methods ===
+    # === Initializes the fighting stat for chacteractes ===
+    def initializeFightStats(self, userID: str) -> bool:
+        try:
+            self.cursor.execute("INSERT OR IGNORE INTO fightStats (userID) VALUES (?)", (userID,))
+            self.conn.commit()
+            return True
+        except sqlite3.Error as e:
+            print(f"There was an error initializing fight stats for {userID}: {e}")
+            return False
+        
+    # === Pulls the fight stats from the data base ===
+    def getFightStats(self, userID: str) -> dict:
+        try:
+            self.cursor.execute("SELECT totalFights, fightSinceBoss, lastFightTimestamp, from fightStats WHERE userID = ?", (userID,))
+            result = self.cursor.fetchone()
+
+            if not result:
+                return None
+            
+            return {
+                "totalFights": result[0],
+                "fightsSinceBoss": result[1],
+                "lastFightTimestamp": result[2]
+            }
+        except sqlite3.Error as e:
+            print(f"There was an error while getting the fights stats for {userID}: {e}")
+            return None
+        
+    # === Updates the fights stats for the user's character ===
+    def updateFightStats(self, userID: str, updates: dict) -> bool:
+        if not updates:
+            return True
+        
+        try:
+            self.initializeFightStats(userID) # <= Makes sure the fight stats recods exists
+
+            setValues = ", ".join([f"{k} = ?" for k in updates.keys()])
+            query = f"UPDATE fightStats SET {setValues} WHERE userID = ?"
+            values = list(updates.values()) + [userID]
+
+            self.curson.execute(query, values)
+            self.conn.commit()
+            return self.cursor.rowcount > 0
+        except sqlite3.Error as e:
+            print(f"There was an error that occured while updating fight stats for {userID}: {e}")
+            return False
+        
+    # === Sets the cooldowns for the skills ===
+    def setSkillCooldown(self, userID: str, skillName: str, turns: int) -> bool:
+        try:
+            self.cursor.execute("INSERT OR REPLACE INTO skillCooldowns (userID, skillName, turnsRemaining) VALUES (?, ?, ?)", (userID, skillName, turns ))
+            self.conn.commit()
+            return True
+        except sqlite3.Error as e:
+            print(f"There was an error while setting the skil cooldowns for {userID}: {e}")
+            return False
+        
+    # === Gets the skill cooldowns for the characters ===
+    def getSkillCooldown(self, userID: str, skillName: str) -> int:
+        try:
+            self.cursor.execute("SELECT turnsRemaining FROM skillCooldowns WHERE userID = ? AND skillName = ?", (userID, skillName))
+            result = self.cursor.fetchone()
+            return result[0] if result else 0
+        except sqlite3.Error as e:
+            print(f"There was an error while getting the skill cooldowns for {userID}: {e}")
+            return 0
+    
+    # === Checks if a skill is currently on cooldown ===
+    def isSkillOnCooldown(self, userID: str, skillName: str) -> bool:
+        return self.getSkillCooldown(userID, skillName) > 0
+    
+    # === Updates the skill cooldown and reduces it by 1 turn
+    def updateSkillCooldown(self, userID: str) -> bool:
+        try:
+            self.cursor.execute("UPDATE skillCooldown SET turnsRemaining = turnsRemaining - 1 WHERE userID = ? and turnsRemaining > 0", (userID,))
+
+            self.cursor.execute("DELETE FROM skillCooldowns WHERE userID = ? and turnsRemaining <= 0", (userID,))
+            self.conn.commit()
+            return True
+        except sqlite3.Error as e:
+            print(f"There was an error while updating the skill cooldowns for {userID}: {e}")
+            return False
+        
+    # === Gets alss the skill cooldowns for the user ===
+    def getALlSkillCooldown(self, userID: str) -> dict:
+        try:
+            self.cursor.execute("SELECT skillName, turnsRemaining FROM skillCooldowns WHERE userID = ? and turnsRemaining > 0", (userID,))
+            return dict(self.cursor.fetchall())
+        except sqlite3.Error as e:
+            print(f"There was an error while getting all the skill cooldowns for {userID}: {e}")
+            return {} 
     
     # === Self note: Add shop management methods here ===
 
