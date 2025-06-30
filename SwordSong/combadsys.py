@@ -55,11 +55,13 @@ class combSystem:
 
     # === Spawns monsters based on the rarity system and boss logic ===
     def spawnMonster(self, userID: str, area: str = "forest") -> Dict:
+        # Checks the fight count for spawning in a boss monster
         fightStats = self.db.getFightStats(userID)
         if not fightStats:
             self.db.initializeFightStats(userID)
             fightStats = {"fightSinceBoss": 0, "totalFights": 0}
 
+        # Forces a boss to spawn every 15 fights
         if fightStats["fightsSinceBoss"] > 14:
             monsters = [m for m in self.areas["areas"][area]["monsters"] if m["rarity"] == "boss"]
             if monsters:
@@ -67,6 +69,7 @@ class combSystem:
                 self.db.updateFightStats(userID, {"fightsSinceBoss": 0})
                 return self._createMonsterInstance(selectedMonster)
         
+        # Spawns the regular monsters based on the rarity
         availableMonsters = []
         for monster in self.areas["area"][area]["monsters"]:
             if monster["rarity"] != "boss":
@@ -78,6 +81,7 @@ class combSystem:
         
         selectedMonster = random.choice(availableMonsters)
 
+        # Updates the fight stats in the db
         self.db.updateFightStats(userID, {
             "totalFights": fightStats["totalFights"] + 1,
             "fightsSinceBoss": fightStats["fightsSinceBoss"] + 1
@@ -91,7 +95,7 @@ class combSystem:
             "monster": monster,
             "turn": "player",
             "turnCount": 1,
-            "playerEffects": {},
+            "playerEffects": {}, # <= Stores temporary stats like defensive stance or burn effects for in the future
             "monsterEffects": {}
         }
        
@@ -123,10 +127,12 @@ class combSystem:
     
     # === Processes the player's attack turns ===
     def processPlayerAttack(self, userID: str, skillName: Optional[str] = None) -> Dict:
+        # Checks if the user is in combat
         combatState = self.activeCombats.get(userID)
         if not combatState:
             return{"error": "There is no active combat found"}
         
+        # Checks if the user has a character in the database
         character = self.db.getCharacter(userID)
         if not character:
             return {"error": "Character is not found"}
@@ -134,22 +140,28 @@ class combSystem:
         monster = combatState["monster"]
         result = {"action": "attack", "damage": 0, "message": ""}
 
+        # Handles skill usage
         skillData = None
         if skillName and skillName in self.defaultSkills:
+            # Checks if the skill is on cooldown
             if self.db.isSkillOnCooldown(userID, skillName):
                 cooldownLeft = self.db.getSkillCooldown(userID, skillName)
                 return {"Error": f"{skillName} is still on cooldown for {cooldownLeft} more turns"}
             
             skillData = self.defaultSkills[skillName]
 
+            # This will check the mana cost of the skill
             if character.get("mana", 0) < skillData.get("manaCost", 0):
                 return {"error": "Not enough mana to use still skill"}
             
+            # This will apply the new mana ammount to the character after using a skill
             newMana = character["mana"] - skillData["manaCost"]
             self.db.updateCharacter(userID, {"mana": newMana})
 
+            # After the skill has been cast this will apply a cooldown
             self.db.setSkillCooldown(userID, skillData, skillData["cooldown"])
 
+        # This will handle the heal skill
         if skillName == "Heal":
             healAmount = int(character["maxHealth"] * skillData["healPercent"])
             newHealth = min(character["maxHealth"], character["health"] + healAmount)
@@ -159,12 +171,14 @@ class combSystem:
             result["healAmount"] = healAmount
             result["message"] = f"YOu healed for {healAmount} HP!"
 
+        # This will handle the defensive stance skill
         elif skillName == "Defensive Stance":
             combatState["playerEffects"]["defensiveStance"] = skillData["duration"]
 
             result["action"] = "defensiveStance"
             result["message"] = "You have entered a defensive stance!"
         
+        # This will handle a regular attack or a attack skill
         else:
             playerStats = {
                 "attack": character["attack"],
@@ -185,10 +199,65 @@ class combSystem:
             if skillName:
                 result["message"] = f"You used {skillName} and dealth {damage} damage to the {monster["name"]}!"
 
+        # Checks if the monster is defeated
         if monster["currentHealth"] <= 0:
             result["monsterDefeated"] = True
             return result
         
+        # If it's not defeated it will switch to the monsters turn
         combatState["turn"] = "monster"
+        return result
+    
+    # === Processes the monsters turn ===
+    def processMonsterTurn(self, userID: str) -> Dict:
+        combatState = self.activeCombats.get(userID)
+        if not combatState:
+            return {"error": "No is no active combat found"}
+        
+        character = self.db.getCharacter(userID)
+        monster = combatState["monster"]
+
+        monsterStats = {
+            "attack": monster["attack"],
+            "defense": monster["defense"]
+        }
+
+        playerStats = {
+            "attack": character["attack"],
+            "defense": character["defense"]
+        }
+
+        # Checks for defensive stance, if the user has defensive stance on applies the damage reduction
+        damageReduction = 1.0
+        if "defensiveStance" in combatState["playerEffects"]:
+            damageReduction = 0.5
+            combatState["playerEffects"]["defensiveStance"] -= 1
+            if combatState["playerEffects"]["defensiveStance"] <= 0:
+                del combatState["playerEffects"]["defensiveStance"]
+
+        # Calculates the damage the monster will do to the user
+        damage = self.calculateDamage(monsterStats, playerStats)
+        damage = int(damage * damageReduction)
+
+        # Applies the damage
+        newHealth = character["health"] - damage
+        self.db.updateCharacter(userID, {"healh": newHealth})
+
+        result = {
+            "damage": damage,
+            "message": f"The {monster["name"]} attack you for {damage} damage!",
+            "playerHealth": newHealth
+        }
+
+        # Checks if the user is defeated
+        if newHealth <= 0:
+            result["playerDefeated"] = True
+            return result
+        
+        # If the user is still alive updates the turn count + skill cooldowns
+        combatState["turnCount"] += 1
+        combatState["turn"] = "player"
+        self.db.updateSkillCooldown(userID)
+
         return result
     
