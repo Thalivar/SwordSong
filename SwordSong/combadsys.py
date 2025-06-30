@@ -10,14 +10,14 @@ class combSystem:
         self.item = itemsData
         self.activeCombats = {}
 
-        self.rarityWeight = {
+        self.rarityWeight = { # <= Sets the weight of the rarities of the different monsters
             "common": 60,
             "uncommonn": 25,
             "rare": 12,
             "legendary": 3
         }
 
-        self.defaultSkills= {
+        self.defaultSkills= { # <= Sets the multipliers and stats for the skills
             "Power Strike": {
                 "damageMultiplier": 1.5,
                 "cooldown": 3,
@@ -46,7 +46,7 @@ class combSystem:
             }
         }
 
-    # === Creates a monster instance with HP tracking
+    # === Creates a monster instance with HP tracking ===
     def _createMonsterInstance(self, monsterTemplate: Dict) -> Dict:
         monster = monsterTemplate.copy()
         monster["currentHealth"] = monster["health"]
@@ -140,11 +140,55 @@ class combSystem:
                 cooldownLeft = self.db.getSkillCooldown(userID, skillName)
                 return {"Error": f"{skillName} is still on cooldown for {cooldownLeft} more turns"}
             
-            skillName = self.defaultSkills[skillName]
+            skillData = self.defaultSkills[skillName]
 
             if character.get("mana", 0) < skillData.get("manaCost", 0):
                 return {"error": "Not enough mana to use still skill"}
             
             newMana = character["mana"] - skillData["manaCost"]
             self.db.updateCharacter(userID, {"mana": newMana})
+
+            self.db.setSkillCooldown(userID, skillData, skillData["cooldown"])
+
+        if skillName == "Heal":
+            healAmount = int(character["maxHealth"] * skillData["healPercent"])
+            newHealth = min(character["maxHealth"], character["health"] + healAmount)
+            self.db.updateCharacter(userID, {"health": newHealth})
+
+            result["action"] = "heal"
+            result["healAmount"] = healAmount
+            result["message"] = f"YOu healed for {healAmount} HP!"
+
+        elif skillName == "Defensive Stance":
+            combatState["playerEffects"]["defensiveStance"] = skillData["duration"]
+
+            result["action"] = "defensiveStance"
+            result["message"] = "You have entered a defensive stance!"
+        
+        else:
+            playerStats = {
+                "attack": character["attack"],
+                "defense": character["defense"]
+            }
+
+            monsterStats = {
+                "attack": monster["attack"],
+                "defense": monster["defense"]
+            }
+
+            damage = self.calculateDamage(playerStats, monsterStats, skillData)
+            monster["currentHealth"] -= damage
+
+            result["damage"] = damage
+            result["message"] = f"You have dealt {damage} damage to the {monster["name"]}!"
+
+            if skillName:
+                result["message"] = f"You used {skillName} and dealth {damage} damage to the {monster["name"]}!"
+
+        if monster["currentHealth"] <= 0:
+            result["monsterDefeated"] = True
+            return result
+        
+        combatState["turn"] = "monster"
+        return result
     
