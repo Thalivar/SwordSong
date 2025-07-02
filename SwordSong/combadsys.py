@@ -3,7 +3,7 @@ import json
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
-class combSystem:
+class combatSystem:
     def __init__(self, db, areasData, itemsData):
         self.db = db
         self.areas = areasData
@@ -12,7 +12,7 @@ class combSystem:
 
         self.rarityWeight = { # <= Sets the weight of the rarities of the different monsters
             "common": 60,
-            "uncommonn": 25,
+            "uncommon": 25,
             "rare": 12,
             "legendary": 3
         }
@@ -34,7 +34,7 @@ class combSystem:
                 "healPercent": 0.4,
                 "cooldown": 4,
                 "manaCost": 1.5,
-                "Description": "A magical pulse that heals 30% of your maximum health"
+                "description": "A magical pulse that heals 30% of your maximum health"
             },
             "Defensive Stance": {
                 "damageMultiplier": 0.5,
@@ -59,7 +59,7 @@ class combSystem:
         fightStats = self.db.getFightStats(userID)
         if not fightStats:
             self.db.initializeFightStats(userID)
-            fightStats = {"fightSinceBoss": 0, "totalFights": 0}
+            fightStats = {"fightsSinceBoss": 0, "totalFights": 0}
 
         # Forces a boss to spawn every 15 fights
         if fightStats["fightsSinceBoss"] > 14:
@@ -71,9 +71,9 @@ class combSystem:
         
         # Spawns the regular monsters based on the rarity
         availableMonsters = []
-        for monster in self.areas["area"][area]["monsters"]:
+        for monster in self.areas["areas"][area]["monsters"]:
             if monster["rarity"] != "boss":
-                weight = self.rarityWeight(monster["rarity"], 1)
+                weight = self.rarityWeight[monster["rarity"]]
                 availableMonsters.extend([monster] * weight)
 
         if not availableMonsters:
@@ -120,7 +120,7 @@ class combSystem:
         if skillData and "damageMultiplier" in skillData: # <- Applies the skill multiplier
             multiplier = skillData["damageMultiplier"] 
 
-        baseDamage = baseAttack * multiplier - (defenderStats * 0.5) # <- The base damage formula
+        baseDamage = baseAttack * multiplier - (defenderStats["defense"] * 0.5) # <- The base damage formula
         finalDamage = baseDamage * random.uniform(0.8, 1.2) # <- Adds a randomization to the damage (80%, 120%)
 
         return max(1, int(finalDamage)) # <- Ensures the minimum damage deal is 1
@@ -159,7 +159,7 @@ class combSystem:
             self.db.updateCharacter(userID, {"mana": newMana})
 
             # After the skill has been cast this will apply a cooldown
-            self.db.setSkillCooldown(userID, skillData, skillData["cooldown"])
+            self.db.setSkillCooldown(userID, skillName, skillData["cooldown"])
 
         # This will handle the heal skill
         if skillName == "Heal":
@@ -241,7 +241,7 @@ class combSystem:
 
         # Applies the damage
         newHealth = character["health"] - damage
-        self.db.updateCharacter(userID, {"healh": newHealth})
+        self.db.updateCharacter(userID, {"health": newHealth})
 
         result = {
             "damage": damage,
@@ -310,8 +310,8 @@ class combSystem:
             }
         
         # Handles loot drops
-        if "LootTable" in monster:
-            for itemName, lootData in monster["lootTalble"].items():
+        if "lootTable" in monster:
+            for itemName, lootData in monster["lootTable"].items():
                 if random.randint(1, 100) <= lootData["chance"]:
                     quantity = lootData["quantity"]
                     if isinstance(quantity, list):
@@ -328,3 +328,16 @@ class combSystem:
     def getAvailableSkills(self, userID: str) -> List[Dict]:
         available = []
         character = self.db.getCharacter(userID)
+
+        for skillName, skillData in self.defaultSkills.items():
+            cooldownRemaining = self.db.getSkillCooldown(userID, skillName)
+            canUse = (cooldownRemaining == 0 and character.get("mana", 0) >= skillData.get("manaCost", 0))
+
+            available.append({
+                "name": skillName,
+                "data": skillData,
+                "cooldownRemaining": cooldownRemaining,
+                "canUse": canUse
+            })
+
+        return available

@@ -78,8 +78,8 @@ class Database:
             CREATE TABLE IF NOT EXISTS fightStats (
                 userID TEXT PRIMARY KEY,
                 totalFights INTEGER DEFAULT 0,
-                fightsSinceBoss INTEGER DEFAUL 0,
-                lastFightTimestap INTEGER DEFAUL 0,
+                fightsSinceBoss INTEGER DEFAULT 0,
+                lastFightTimestap INTEGER DEFAULT 0,
                 FOREIGN KEY (userID) REFERENCES characters(userID)
             )''')
         
@@ -106,7 +106,7 @@ class Database:
     def createCharacter(self, userID: str, name: str):
         try:
             self.cursor.execute(
-                "INSERT INTO characters (userID, name) VALUEs (?, ?)",
+                "INSERT INTO characters (userID, name) VALUES (?, ?)",
                 (userID, name)
             )
             self.conn.commit()
@@ -182,7 +182,7 @@ class Database:
             return False
         
         try:
-            self.cursor.execute("SELECT quantity FROM inventory WHERE userID + ? AND itemName = ?", (userID, itemName))
+            self.cursor.execute("SELECT quantity FROM inventory WHERE userID = ? AND itemName = ?", (userID, itemName))
             existing = self.cursor.fetchone()
 
             if existing:
@@ -190,7 +190,7 @@ class Database:
                 self.cursor.execute("UPDATE inventory SET quantity = ? WHERE userID = ? AND itemName = ?", (newQuantity, userID, itemName))
             
             else:
-                self.cursor.execute("INSERT INTO inventory (userID, itemName, quantity) VALUES (?, ?, ?)", (newQuantity, userID, itemName))
+                self.cursor.execute("INSERT INTO inventory (userID, itemName, quantity) VALUES (?, ?, ?)", (quantity, userID, itemName))
             
             self.conn.commit()
             return True
@@ -233,7 +233,7 @@ class Database:
             return False
 
     # === Equips an item to a character ===
-    def equipitem(self, userID: str, slot: str, itemName: str) -> bool:
+    def equipItem(self, userID: str, slot: str, itemName: str) -> bool:
         try:
             self.cursor.execute("INSERT OR REPLACE INTO equipment (userID, slot, itemName) VALUES (?, ?, ?)", (userID, slot, itemName))
             self.conn.commit()
@@ -275,7 +275,7 @@ class Database:
     # === Pulls the fight stats from the data base ===
     def getFightStats(self, userID: str) -> dict:
         try:
-            self.cursor.execute("SELECT totalFights, fightSinceBoss, lastFightTimestamp, from fightStats WHERE userID = ?", (userID,))
+            self.cursor.execute("SELECT totalFights, fightsSinceBoss, lastFightTimestamp FROM fightStats WHERE userID = ?", (userID,))
             result = self.cursor.fetchone()
 
             if not result:
@@ -302,7 +302,7 @@ class Database:
             query = f"UPDATE fightStats SET {setValues} WHERE userID = ?"
             values = list(updates.values()) + [userID]
 
-            self.curson.execute(query, values)
+            self.cursor.execute(query, values)
             self.conn.commit()
             return self.cursor.rowcount > 0
         except sqlite3.Error as e:
@@ -336,7 +336,7 @@ class Database:
     # === Updates the skill cooldown and reduces it by 1 turn
     def updateSkillCooldown(self, userID: str) -> bool:
         try:
-            self.cursor.execute("UPDATE skillCooldown SET turnsRemaining = turnsRemaining - 1 WHERE userID = ? and turnsRemaining > 0", (userID,))
+            self.cursor.execute("UPDATE skillCooldowns SET turnsRemaining = turnsRemaining - 1 WHERE userID = ? and turnsRemaining > 0", (userID,))
 
             self.cursor.execute("DELETE FROM skillCooldowns WHERE userID = ? and turnsRemaining <= 0", (userID,))
             self.conn.commit()

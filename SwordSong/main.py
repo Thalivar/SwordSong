@@ -3,6 +3,7 @@ from discord.ext import commands
 from discord.ext.commands import cooldown, BucketType
 from dotenv import load_dotenv
 from database import Database
+from combadsys import combatSystem
 from pathlib import Path
 import asyncio
 import random
@@ -16,12 +17,6 @@ TOKEN = os.getenv("DISCORDTOKEN")
 if not TOKEN:
     print("Error: DISCORDTOKEN is not found in the .env file.")
     exit(1)
-
-# === Setup the Bot ===
-intents = discord.Intents.default()
-intents.message_content = True
-client = commands.Bot(command_prefix=".", intents = intents, help_command = None, case_insensitive = True)
-db = Database()
 
 # === Get the directory to data folder ===
 BOT_DIR = Path(__file__).parent
@@ -40,6 +35,13 @@ except FileNotFoundError as e:
 except json.JSONDecodeError as e:
     print(f"Error the JSON file is not properly formatted: {e}")
     exit(1)
+
+# === Setup the Bot ===
+intents = discord.Intents.default()
+intents.message_content = True
+client = commands.Bot(command_prefix=".", intents = intents, help_command = None, case_insensitive = True)
+db = Database()
+combatSystem = combatSystem(db, areas, items)
 
 # === Sets the bot's activity feed and prints a message when the bot is ready ===
 @client.event
@@ -70,7 +72,7 @@ async def help(ctx):
     embed.add_field(name = ".profile", value = "View your character's profile", inline = False)
     embed.add_field(name = ".inventory", value = "View all the wares you currently have in your inventory", inline = False)
     embed.add_field(name = ".shop", value = "View all the items that are available for purchase", inline = False)
-    embed.add_field(name = ".but <item>", value = "But the desired items from the shop", inline = False)
+    embed.add_field(name = ".buy <item>", value = "But the desired items from the shop", inline = False)
     embed.add_field(name = ".sell <item>", value = "Sell an item from your inventory to the shop", inline = False)
     embed.add_field(name = ".equip <item>", value = "Equip a weapon or armor from your inventory", inline = False)
     embed.add_field(name = ".unequip <item>", value = "unequip a weapon or armor that you're currently wearing", inline = False)
@@ -155,7 +157,11 @@ async def profile(ctx):
 @client.command()
 @cooldown(1, 5, BucketType.user)
 async def fight(ctx):
-    character = db.getCharacter(str(ctx.author.id))
+    print(f"Fight command was called by {ctx.author.name}")
+    userID = str(ctx.author.id)
+
+    # Checks if the character exists in the database
+    character = db.getCharacter(userID)
     if not character:
         embed = discord.Embed(
             title = "You're not part of the guild.",
@@ -165,10 +171,149 @@ async def fight(ctx):
         await ctx.send(embed = embed)
         return
     
-    currentArea = character['currentArea']
-    monsters = areas['area'][currentArea]['monsters']
-    monster = random.choice(monsters)
-    monsterHP = monster['health']
+    # Checks if the player is already in combat
+    if combatSystem.getCombatState(userID):
+        embed = discord.Embed(
+            title = "Already in combat!",
+            description = "Watch out! You're already fighting a monster! Use `.attack`, `.skill`, `.flee`",
+            color = discord.Color.orange()
+        )
+        await ctx.send(embed = embed)
+        return
+    
+    # checks if the player has enough health or needs to heal up
+    if character["health"] <= 0:
+        embed = discord.Embed(
+            title = "You are too injured to fight right now!",
+            description = "You're health is to low to fight. Rest or use healing potions before going on a hunt again.",
+            color = discord.Color.red()
+        )
+        await ctx.send(embed = embed)
+        return
+    
+    # Gets the area the character is in and the monsters is the area
+    currentArea = character.get("currentArea", "forest")
+    monster = combatSystem.spawnMonster(userID, currentArea)
+
+    # Checks if there are huntable monsters in the area
+    if not monster:
+        embed = discord.Embed(
+            title = "There were no monsters found!",
+            description = "There are no monsters in this area right now. Please try again later.",
+            color = discord.Color.orange()
+        )
+        await ctx.send(embed = embed)
+        return
+    
+    combatState = combatSystem.startCombat(userID, monster)
+    embed= discord.Embed(
+        title = "❗Watch out! You ran into a monster❗",
+        description = f"A wild **{monster["name"]}** appears!\n\n{monster["description"]}",
+        color = discord.Color.red()
+    )
+
+    embed.add_field(
+        name = "Monster's stats",
+        value = f"❤️ Health: {monster["currentHealth"]}/{monster["maxHealth"]}\n"
+                f"⚔️ Attack: {monster["attack"]}\n"
+                f"🛡️ Defense: {monster["defense"]}\n"
+                f"🌟 Rarity: {monster["rarity"].title()}",
+        inline = True
+    )
+
+    embed.add_field(
+        name = f"{character["name"]}'s stats",
+        value = f"❤️ Health: {character["Health"]}/{character["maxHealth"]}\n"
+                f"🔵 Mana: {character["mana"]}\n"
+                f"⚔️ Attack: {character["attack"]}\n"
+                f"🛡️ Defense: {character["defense"]}\n",
+        inline = True
+    )
+
+    embed.add_field(
+        name = "Actions",
+        value = "`.attack` - A basic attack\n"
+                "`.skill` - Use a skill\n"
+                "`.flee` - Try to escape from the battle\n",
+        inline = False
+    )
+
+    await ctx.send(embed = embed)
+    
+# === Performs a basic attack while the user is in combat ===
+@client.command()
+@cooldown(1, 3, BucketType.user)
+async def attack(ctx):
+    print(f"Attack command was called by {ctx.author.id}")
+    userID = str(ctx.author.id)
+
+    # Checks if the character is in the database
+    character = db.getCharacter(userID)
+    if not character:
+        embed = discord.Embed(
+            title = "You're not part of the guild.",
+            description = "You're not part of SwordSong, so you're not able to see your profile.",
+            color = discord.Color.red()
+        )
+        await ctx.send(embed = embed)
+        return
+    
+    # Checks if the character is in combat
+    combatState = combatSystem.getCombatState(userID)
+    if not combatState:
+        embed = discord.Embed(
+            title = "Not in combat!",
+            description = "You're not fighting anyone right now. Use `.fight` to start hunting monsters.",
+            color = discord.Color.orange()
+        )
+        await ctx.send(embed = embed)
+        return
+    
+    # Checks if its the users turn
+    if combatState["turn"] != "player":
+        embed = discord.Embed(
+            title = "Not your turn!",
+            description = "Wait for the monster to finish it's turn before you can attack.",
+            color = discord.Color.orange()
+        )
+        await ctx.send(embed = embed)
+        return
+    
+    result = combatSystem.processPlayerAttack(userID)
+
+    # If there is any error during the attack stops it
+    if "error" in result:
+        embed = discord.Embed(
+            title = "Your attack failed!",
+            description = result["error"],
+            color = discord.Color.red()
+        )
+        await ctx.send(embed = embed)
+        return
+    
+    embed = discord.Embed(
+        title = "⚔️ Attack!",
+        description = result["message"],
+        color = discord.Color.blue()
+    )
+
+    monster = combatState["monster"]
+    embed.add_field(
+        name = "Monster's Health",
+        value = f"❤️ {monster["currentHealth"]}/{monster["maxHealth"]}",
+        inline = True
+    )
+
+    await ctx.send(embed = embed)
+
+    # Checks if the monster died and if so handles the fight vicotry
+    if result.get("monsterDefeated"):
+        await handleCombatVictory(ctx, userID, monster)
+        return
+    
+    await asyncio.sleep(2) # <= purely a wait for dramatic effect
+    await processMonsterTurn(ctx, userID) # If monster didn't die go to the monsters turn
+
 
 
 
