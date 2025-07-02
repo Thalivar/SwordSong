@@ -260,7 +260,71 @@ class combSystem:
         self.db.updateSkillCooldown(userID)
 
         return result
-
-
-        # test
     
+    # === Gives the user the rewards after winning the battle ===
+    def distributeRewards(self, userID: str, monster: Dict) -> Dict:
+        character = self.db.getCharacter(userID)
+        rewards = {
+            "xp": monster["xpReward"],
+            "coins": random.randint(monster["xpReward"] // 2, monster["xpReward"]),
+            "items": []
+        }
+
+        # Calculates the character is getting and checks for level up
+        newXP = character["xp"] + rewards["xp"]
+        newCoins = character["coins"] + rewards["coins"]
+        updates = {"xp": newXP, "coins": newCoins}
+
+        # Checks for level up
+        levelUP = False
+        if newXP >= character["xpToLevel"]:
+            newLevel = character["level"] + 1
+            remainingXP = newXP - character["xpToLevel"]
+            newXPToLevel = character["xpToLevel"] + (newLevel * 50) # Sets the scaling for levelup
+
+            # If the user lavel's up the stats increase
+            newMaxHealth = character["maxHealth"] + 20
+            newAttack = character["attack"] + 4
+            newDefense = character["defense"] + 2
+            newMana = character.get("maxMana", 50) + 10
+
+            updates.update({
+                "level": newLevel,
+                "xp": remainingXP,
+                "xpToLevel": newXPToLevel,
+                "maxHealth": newMaxHealth,
+                "health": newMaxHealth, # <= refreshes the health back to full
+                "attack": newAttack,
+                "defense": newDefense,
+                "maxMana": newMana,
+                "mana": newMana # <= Refreses the mana back to full
+            })
+
+            levelUP = True
+            rewards["levelUP"] = {
+                "newLevel": newLevel,
+                "healthIncrease": 20,
+                "attackIncrease": 4,
+                "defenseIncrease": 2,
+                "manaIncrease": 10
+            }
+        
+        # Handles loot drops
+        if "LootTable" in monster:
+            for itemName, lootData in monster["lootTalble"].items():
+                if random.randint(1, 100) <= lootData["chance"]:
+                    quantity = lootData["quantity"]
+                    if isinstance(quantity, list):
+                        quantity = random.randint(quantity[0], quantity[1])
+
+                    self.db.addItem(userID, itemName, quantity)
+                    rewards["items"].append({"name": itemName, "quantity": quantity})
+        
+        # Applies the level up update to the character
+        self.db.updateCharacter(userID, updates)
+        return rewards
+    
+    # === Checks all the skills that are not on cooldown ===
+    def getAvailableSkills(self, userID: str) -> List[Dict]:
+        available = []
+        character = self.db.getCharacter(userID)
