@@ -79,7 +79,7 @@ class Database:
                 userID TEXT PRIMARY KEY,
                 totalFights INTEGER DEFAULT 0,
                 fightsSinceBoss INTEGER DEFAULT 0,
-                lastFightTimestap INTEGER DEFAULT 0,
+                lastFightTimestamp INTEGER DEFAULT 0,
                 FOREIGN KEY (userID) REFERENCES characters(userID)
             )''')
         

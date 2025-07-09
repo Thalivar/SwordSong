@@ -223,7 +223,7 @@ async def fight(ctx):
 
     embed.add_field(
         name = f"{character["name"]}'s stats",
-        value = f"❤️ Health: {character["Health"]}/{character["maxHealth"]}\n"
+        value = f"❤️ Health: {character["health"]}/{character["maxHealth"]}\n"
                 f"🔵 Mana: {character["mana"]}\n"
                 f"⚔️ Attack: {character["attack"]}\n"
                 f"🛡️ Defense: {character["defense"]}\n",
@@ -241,6 +241,25 @@ async def fight(ctx):
     await ctx.send(embed = embed)
     
 # === Performs a basic attack while the user is in combat ===
+async def handleCombatVictory(ctx, userID, monster):
+    rewards = combatSystem.distributeRewards(userID, monster)
+    embed = discord.Embed(
+        title = "Victory!",
+        description = f"You defeated the {monster['name']} and earned {rewards['xp']} XP and {rewards['coins']} coins!",
+        color = discord.Color.green()
+    )
+    if rewards.get("items"):
+        loot = "\n".join([f"{item['quantity']}x {item['name']}" for item in rewards["items"]])
+        embed.add_field(name="Loot", value=loot, inline=False)
+
+    if rewards.get("levelUP"):
+        embed.add_field(
+            name = "Level Up!",
+            value = f"You reached level {rewards['levelUP']['newLevel']}! Stats increased.",
+            inline = False
+        )
+    await ctx.send(embed=embed)
+
 @client.command()
 @cooldown(1, 3, BucketType.user)
 async def attack(ctx):
@@ -312,7 +331,7 @@ async def attack(ctx):
         return
     
     await asyncio.sleep(2) # <= purely a wait for dramatic effect
-    await processMonsterTurn(ctx, userID) # If monster didn't die go to the monsters turn
+    await combatSystem.processMonsterTurn(ctx, userID) # If monster didn't die go to the monsters turn
 
 
 
