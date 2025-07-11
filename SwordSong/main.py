@@ -265,7 +265,7 @@ async def handleCombatVictory(ctx, userID, monster):
 
 # === Handles the monsters turn ===
 async def processMonsterTurnAsync(ctx, userID):
-    monsterResult = combatSystem.processMonsterTurn
+    monsterResult = combatSystem.processMonsterTurn(userID)
 
     # Checks for any potential errors while processing the monster turn
     if "error" in monsterResult:
@@ -279,7 +279,7 @@ async def processMonsterTurnAsync(ctx, userID):
     
     embed = discord.Embed(
         title = "💥 Monster Attack!",
-        desctiption = monsterResult["message"],
+        description = monsterResult["message"],
         color = discord.Color.red()
     )
 
@@ -365,13 +365,14 @@ async def attack(ctx):
     # Checks if the monster died and if so handles the fight vicotry
     if result.get("monsterDefeated"):
         await handleCombatVictory(ctx, userID, monster)
+        combatSystem.endCombat(userID)
         return
     
     await asyncio.sleep(2) # <= purely a wait for dramatic effect
-    await combatSystem.processMonsterTurn(ctx, userID) # If monster didn't die go to the monsters turn
+    await processMonsterTurnAsync(ctx, userID) # If monster didn't die go to the monsters turn
 
 # === Add a command to use a skill (Will work this into a emoji bassed command its just a temporary test function) ===
-@client.command
+@client.command()
 @cooldown(1, 3, BucketType.user)
 async def skill(ctx, *, skillName = None):
     print(f"Skill command was called by {ctx.author.name}")
@@ -431,7 +432,7 @@ async def skill(ctx, *, skillName = None):
         await ctx.send(embed = embed)
         return
 
-    result = combatState.processPlayerAttack(userID, skillName)
+    result = combatSystem.processPlayerAttack(userID, skillName)
 
     if "error" in result:
         embed = discord.Embed(
@@ -442,23 +443,29 @@ async def skill(ctx, *, skillName = None):
         await ctx.send(embed = embed)
         return
     
-    if result["action"] == "heal":
+    if result["action"] == "Heal Pulse":
         embed = discord.Embed(
             title = "💚 Healing",
             description = result["message"],
             color = discord.Color.brand_green()
         )
-    elif result["action"] == "defensiveStance":
+    elif result["action"] == "Defensive Stance":
         embed = discord.Embed(
             title = "🛡️ Defensive Stance",
             description = result["message"],
             color = discord.Color.dark_blue()
         )
+    elif result["action"] == "Fire Ball":
+        embed = discord.Embed(
+            title = "⚡ Fire Ball",
+            descripton = result["message"],
+            color = discord.Color.dark_red()
+        )
     else:
         embed = discord.Embed(
-            title = "⚡ Skill Attack!",
-            descripton = result["message"],
-            color = discord.Color.dark_magenta()
+            title = "Power Strike",
+            description = result["message"],
+            color = discord.Color.dark_orange()
         )
     
     monster = combatState["monster"]
@@ -505,8 +512,28 @@ async def flee(ctx):
         await ctx.send(embed = embed)
         return
     
-    if random
+    # Gets a random number between 1-100 if its 70 or less the flee attampt is successfull
+    if random.randint(1, 100) <= 70:
+        embed = discord.Embed(
+            title = "💨 Succsessful Escape!",
+            description = "You successfully escaped from the monster!",
+            color = discord.Color.green()
+        )
+        combatSystem.endCombat(userID)
+    else:
+        embed = discord.Embed(
+            title = "❌ You Failed to Escape!",
+            description = "You couldn't escape! The monster caught up to you while you were running away!",
+            color = discord.Color.dark_red()
+        )
+        await ctx.send(embed = embed)
 
+        # The monster gets a free attack
+        await asyncio.sleep(1)
+        await processMonsterTurnAsync(ctx, userID)
+        return
+    
+    await ctx.send(embed = embed)
 
 
 # === Test commands to make sure things work correctly ===

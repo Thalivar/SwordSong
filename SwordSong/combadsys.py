@@ -146,7 +146,7 @@ class combatSystem:
             # Checks if the skill is on cooldown
             if self.db.isSkillOnCooldown(userID, skillName):
                 cooldownLeft = self.db.getSkillCooldown(userID, skillName)
-                return {"Error": f"{skillName} is still on cooldown for {cooldownLeft} more turns"}
+                return {"error": f"{skillName} is still on cooldown for {cooldownLeft} more turns"}
             
             skillData = self.defaultSkills[skillName]
 

@@ -24,7 +24,7 @@ class Database:
                 attack INTEGER DEFAULT 10,
                 defense INTEGER DEFAULT 5,
                 coins INTEGER DEFAULT 0,
-                currentArea TEXT DEFAULT 'Starter Village'
+                currentArea TEXT DEFAULT 'forest'
             )''')
         
         # === Creates the inventory table ===
