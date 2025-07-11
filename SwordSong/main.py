@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 from database import Database
 from combadsys import combatSystem
 from pathlib import Path
+import math
 import random
 import asyncio
 import json
@@ -160,7 +161,7 @@ async def profile(ctx):
 @client.command()
 @cooldown(1, 5, BucketType.user)
 async def fight(ctx):
-    print(f"Fight command was called by {ctx.author.name}")
+    print(f"Fight command was called by", ctx.author.name)
     userID = str(ctx.author.id)
 
     # Checks if the character exists in the database
@@ -266,6 +267,7 @@ async def handleCombatVictory(ctx, userID, monster):
 # === Handles the monsters turn ===
 async def processMonsterTurnAsync(ctx, userID):
     monsterResult = combatSystem.processMonsterTurn(userID)
+    character = db.getCharacter(userID)
 
     # Checks for any potential errors while processing the monster turn
     if "error" in monsterResult:
@@ -281,6 +283,12 @@ async def processMonsterTurnAsync(ctx, userID):
         title = "💥 Monster Attack!",
         description = monsterResult["message"],
         color = discord.Color.red()
+    )
+
+    embed.add_field(
+        name = "Your Health",
+        value = f"❤️ {monsterResult["playerHealth"]}/{character["maxHealth"]}",
+        inline = True
     )
 
     await ctx.send(embed = embed)
@@ -300,7 +308,7 @@ async def processMonsterTurnAsync(ctx, userID):
 @client.command()
 @cooldown(1, 3, BucketType.user)
 async def attack(ctx):
-    print(f"Attack command was called by {ctx.author.id}")
+    print(f"Attack command was called by", ctx.author.name)
     userID = str(ctx.author.id)
 
     # Checks if the character is in the database
@@ -375,7 +383,7 @@ async def attack(ctx):
 @client.command()
 @cooldown(1, 3, BucketType.user)
 async def skill(ctx, *, skillName = None):
-    print(f"Skill command was called by {ctx.author.name}")
+    print(f"Skill command was called by", ctx.author.name)
     userID = str(ctx.author.id)
     character = db.getCharacter(userID)
     if not character:
@@ -490,7 +498,7 @@ async def skill(ctx, *, skillName = None):
 @client.command()
 @cooldown(1, 3, BucketType.user)
 async def flee(ctx):
-    print(f"The Flee command was called by {ctx.author.id}")
+    print(f"The Flee command was called by", ctx.author.name)
     userID = str(ctx.author.id)
     character = db.getCharacter(userID)
     if not character:
@@ -535,6 +543,76 @@ async def flee(ctx):
     
     await ctx.send(embed = embed)
 
+# === Resting command to let the user heal back up ===
+@client.command()
+@cooldown(1, 300, BucketType.user)
+async def rest(ctx):
+    print(f"Rest command was called by", ctx.author.name)
+    userID = str(ctx.author.id)
+    character = db.getCharacter(userID)
+    if not character:
+        embed = discord.Embed(
+            title = "You're not part of the guild",
+            description = "You're not part of SwordSong, so you're not allowed in the camp to heal yourself",
+            color = discord.Color.red()
+        )
+        await ctx.send(embed = embed)
+        return
+
+    currentHealth = character["health"]
+    maxHealth = character["maxHealth"]
+    ticks = 10
+    percentPerTick = 10
+
+    if currentHealth >= maxHealth:
+        embed = discord.Embed(
+            title = "Already at full health!",
+            description = "YOu're already at full health so don't worry about healing up!",
+            color = discord.Color.green()
+        )
+        await ctx.send(embed = embed)
+        return
+    
+    embed = discord.Embed(
+        title = "🔥 Resting back up at the campfire 🔥",
+        description = "Eat some smore's at the campfire and rest backup to go back hunting.",
+        color = discord.Color.dark_orange()
+    )
+
+    embed.add_field(
+        name = "Health",
+        value = f"❤️ {currentHealth}/{maxHealth}"
+    )
+
+    message = await ctx.send(embed = embed)
+
+    for i in range(ticks):
+        healAmount = math.ceil(maxHealth * (percentPerTick / 100))
+        newHealth = min(currentHealth + healAmount, maxHealth)
+        db.updateCharacter(userID, {"health": newHealth})
+        currentHealth = newHealth
+
+        embed.set_field_at(
+            0,
+            name = "Health",
+            value = f"❤️ {currentHealth}/{maxHealth}",
+            inline = True
+        )
+
+        embed.set_footer(
+            text = f"Tick {i + 1}/{ticks}"
+        )
+        await message.edit(embed = embed)
+
+        if newHealth >= maxHealth:
+            break
+
+        await asyncio.sleep(1)
+    
+    embed.title = "🔥 Resting complete! 🔥"
+    embed.description = "You had enough smore's for now get back to fighting!"
+    embed.set_footer(text = None)
+    await message.edit(embed = embed)
 
 # === Test commands to make sure things work correctly ===
 
