@@ -81,6 +81,12 @@ async def help(ctx):
 
     await ctx.send(embed=embed)
 
+"""
+System commands
+* Consists of .start, .profile, .inventory, .shop, .equip/unequip
+* These are commands to access some of the systems of the game will most likely add more in the future however these are the ones i'm currently working
+"""
+
 # === Command to create an character to use the rpg commands ===
 @client.command()
 @cooldown(1, 4, BucketType.user)
@@ -157,6 +163,50 @@ async def profile(ctx):
 
     await ctx.send(embed = embed)
 
+@client.command()
+@cooldown(1, 3, BucketType.user)
+async def inventory(ctx):
+    print(f"Inventory command was called by", ctx.author.name)
+    userID = str(ctx.author.id)
+    character = db.getCharacter(userID)
+    items = db.getInventory(userID)
+    if not character:
+        embed = discord.Embed(
+            title = "You're not part of the guild",
+            description = "You're not part of SwordSong, So you don't have a backpack",
+            color = discord.Color.red()
+        )
+        await ctx.send(embed = embed)
+        return
+
+    if items:
+        inventoryText = "\n".join([f"{name}: {qty}" for name, qty in items])
+    else:
+        inventoryText = "Empty"
+
+    embed = discord.Embed(
+        title = f"{character['name']}'s Inventory",
+        color = discord.Color.blue()
+    )
+    
+    embed.add_field(
+        name = "Inventory",
+        value = inventoryText,
+        inline = False
+    )
+
+    # Future reference add a equipment showcase here
+
+    await ctx.send(embed = embed)
+    
+    
+    
+
+"""
+* Fighting commands to make the fighting system work.
+* Consists of .fight, .attack, .skill, .flee, and some extra functions to make them work
+* Right now works on a command based system, however will rework this later on to make it based on reactions for less clutter in the chat
+"""
 # === Fighting command to fight monsters ===
 @client.command()
 @cooldown(1, 5, BucketType.user)
@@ -306,7 +356,6 @@ async def processMonsterTurnAsync(ctx, userID):
     return True
 
 @client.command()
-@cooldown(1, 3, BucketType.user)
 async def attack(ctx):
     print(f"Attack command was called by", ctx.author.name)
     userID = str(ctx.author.id)
@@ -376,7 +425,7 @@ async def attack(ctx):
         combatSystem.endCombat(userID)
         return
     
-    await asyncio.sleep(2) # <= purely a wait for dramatic effect
+    await asyncio.sleep(1) # <= purely a wait for dramatic effect (Might remove later on)
     await processMonsterTurnAsync(ctx, userID) # If monster didn't die go to the monsters turn
 
 # === Add a command to use a skill (Will work this into a emoji bassed command its just a temporary test function) ===
@@ -491,7 +540,7 @@ async def skill(ctx, *, skillName = None):
         combatSystem.endCombat(userID)
         return
     
-    await asyncio.sleep(2)
+    await asyncio.sleep(1)
     await processMonsterTurnAsync(ctx, userID)
 
 # === Command for the user to escape or flee from combat ===
@@ -543,6 +592,13 @@ async def flee(ctx):
     
     await ctx.send(embed = embed)
 
+"""
+Admins commands.
+* These are purely testing commands for now to test the other function
+* Consists if .rest, and .resetdata
+* Will most likely make this into actual commands with some tweaks later on
+"""
+
 # === Resting command to let the user heal back up ===
 @client.command()
 @cooldown(1, 300, BucketType.user)
@@ -567,7 +623,7 @@ async def rest(ctx):
     if currentHealth >= maxHealth:
         embed = discord.Embed(
             title = "Already at full health!",
-            description = "YOu're already at full health so don't worry about healing up!",
+            description = "You're already at full health so don't worry about healing up!",
             color = discord.Color.green()
         )
         await ctx.send(embed = embed)
@@ -613,8 +669,6 @@ async def rest(ctx):
     embed.description = "You had enough smore's for now get back to fighting!"
     embed.set_footer(text = None)
     await message.edit(embed = embed)
-
-# === Test commands to make sure things work correctly ===
 
 # === Resets your character data (might make this into an actual command to reset progress) ===
 @client.command()

@@ -190,7 +190,7 @@ class Database:
                 self.cursor.execute("UPDATE inventory SET quantity = ? WHERE userID = ? AND itemName = ?", (newQuantity, userID, itemName))
             
             else:
-                self.cursor.execute("INSERT INTO inventory (userID, itemName, quantity) VALUES (?, ?, ?)", (quantity, userID, itemName))
+                self.cursor.execute("INSERT INTO inventory (userID, itemName, quantity) VALUES (?, ?, ?)", (userID, itemName, quantity))
             
             self.conn.commit()
             return True
@@ -224,7 +224,7 @@ class Database:
                 self.cursor.execute("DELETE FROM inventory WHERE userID = ? AND itemName = ?", (userID, itemName))
             
             else:
-                self.cursor.execute("UPDATE inventory SET quantity = ? WHERE userID = ? AND itemName = ?", (newQuantity, userID, itemName))
+                self.cursor.execute("UPDATE inventory SET quantity = ? WHERE userID = ? AND itemName = ?", (userID, newQuantity, itemName))
             
             self.conn.commit()
             return True
