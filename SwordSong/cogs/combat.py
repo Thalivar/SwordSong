@@ -144,7 +144,124 @@ class CombatCog(commands.Cog):
         
         await asyncio.sleep(1)
         await self.processMonsterTurn(ctx, userID, character, monster)
+    
+    @commands.command(name = "skill")
+    async def skill(self, ctx, *, skillName = None):
+        print(f"Skill command was called by:", ctx.author.id)
+        userID = str(ctx.author.id)
+        character = self.db.getCharacter(userID)
+        combatState = self.combat.combatState(userID)
+        if not character:
+            embed = discord.Embed(
+                name = "You're not part of the guild!",
+                description = "You're not part of SwordSong! So you're not allowed to use skills.",
+                color = discord.Color.red()
+            )
+            await ctx.send(embed = embed)
+            return
+        if not combatState:
+            embed = discord.Embed(
+                name = "You're not in combat!",
+                description = "You're not allowed to use skills outside of combat.",
+                color = discord.Color.orange()
+            )
+            await ctx.send(embed = embed)
+            return
+        if combatState["turn"] != "player":
+            embed = discord.Embed(
+                name ="It's not your turn!",
+                description = "Focus on dodging the monsters attacks before using a skill!",
+                color = discord.Color.red()
+            )
+        
+        if not skillName:
+            availableSkills = combatSystem.getAvailableSkills(userID)
 
+            embed = discord.Embed(
+                title = "Available Skills",
+                description = "Please choose a skill to use:",
+                color = discord.Color.dark_blue()
+            )
+
+            for skill in availableSkills:
+                status = "✅ Ready" if skill["canUse"] else f"❌ Cooldown: {skill["cooldownRemaining"]} turn"
+
+                embed.add_field(
+                    name = skill["name"],
+                    value = f"{skill["data"]["description"]}\n{status}",
+                    inline = True
+                )
+            embed.add_field(
+                name = "Usage",
+                value = "Use `.skill <Skill Name> to cast a skill",
+                inline = False
+            )
+            await ctx.send(embed = embed)
+            return
+        
+        result = combatSystem.processPlayerAttack(userID, skillName)
+
+        if "error" in result:
+            embed = discord.Embed(
+                title = "Skill Failed!",
+                description = result["error"],
+                color = discord.Color.red()
+            )
+            await ctx.send(embed = embed)
+            return
+        
+        if result["action"] == "Heal Pulse":
+            embed = discord.Embed(
+                name = "💚 Heal Pulse! 💚",
+                description = result["message"],
+                color = discord.Color.green()
+            )
+        elif result["action"] == "Defensive Stance":
+            embed = discord.Embed(
+                name = "🛡️ Defensive Stance 🛡️",
+                description = result["message"],
+                color = discord.Color.blue()
+            )
+        elif result["action"] == "Fire Ball":
+            embed = discord.Embed(
+                name = "🔥 Fire Ball 🔥",
+                description = result["message"],
+                color = discord.Color.red()
+            )
+        elif result["action"] == "Power Strike":
+            embed = discord.Embed(
+                name = "⚡ Power Strike ⚡",
+                description = result["message"],
+                color = discord.Color.gold()
+            )
+        else:
+            embed = discord.Embed(
+                title = "Unknown Skill",
+                description = "You don't know that skill, please try casting one that you know.",
+                color = discord.Color.red()
+            )
+
+        monster = combatState["monster"]
+        if result.get("damage", 0) > 0:
+            embed.add_field(
+                name = "Monster's Health",
+                value = f"❤️ {monster["currentHealth"]}/{monster["maxHealth"]}",
+                inline = True
+            )
+
+        await ctx.send(embed = embed)
+
+        if result.get("monsterDefeated"):
+            await self.handleCombatVictory(ctx, userID, monster)
+            combatSystem.endCombat(userID)
+            return
+        await asyncio.sleep(1)
+        await self.processMonsterTurn(ctx, userID, character, monster)
+
+    @commands.command(name = "flee")
+    async def flee(self, ctx):
+        print(f"The flee command was called by:", ctx.author.name)
+        userID = str(ctx.author.id)
 
     # === Helper Functions ===
     async def handleCombatVictory(ctx, userID, monster):
@@ -194,5 +311,15 @@ class CombatCog(commands.Cog):
             inline = True
         )
 
+        await ctx.send(embed = embed)
 
-
+        if monsterResult.get("playerDefeated"):
+            embed = discord.Embed(
+                name = "💀 Defeat!",
+                description = "You were unfortunatly defeated by the monster. Go get some rest before hunting again.",
+                color = discord.Color.red()
+            )
+            await ctx.send(embed = embed)
+            combatSystem.endCombat(userID)
+            return False
+        return True
