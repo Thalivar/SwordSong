@@ -2,6 +2,8 @@
 
 SwordSong is a text-based RPG Discord bot set in the dark fantasy realm of Azefarnia, where players take on the role of adventurers in a crumbling world of monsters, guilds, and powerful artifacts. It's inspired by gothic fantasy and classic RPG systems, SwordSong offers a command-driven adventure experience through Discord.
 
+Currently putting this project on hold for now as I'm working on finishing other projects. However, I'll come back to this in the future
+
 ✨ Features
 
     Create and customize a character to join the SwordSong guild
@@ -19,13 +21,14 @@ Command	Description
     .start - Begin your journey and create a character
     .profile - View your character’s current stats and name
     .inventory - Display your current item collection
-    .shop - View available items for purchase
-    .buy <item> - Purchase an item from the shop
-    .sell <item> - Sell an item from your inventory
-    .equip <item> - Equip a weapon or armor from your inventory
-    .unequip <item> - Unequip your currently equipped item
-    .adventure - Embark on an adventure and fight monsters
+    .shop - View available items for purchase ( Will be added in the future )
+    .buy <item> - Purchase an item from the shop ( Will be added in the future )
+    .sell <item> - Sell an item from your inventory ( Will be added in the future )
+    .equip <item> - Equip a weapon or armor from your inventory ( Will be added in the future )
+    .unequip <item> - Unequip your currently equipped item ( Will be added in the future )
+    .fight - Embark on an adventure and fight monsters
     .resetdata - Reset your character and leave the guild (with confirmation prompt)
+    .rest - Let your character rest and heal back up after a fight
     .help - Show all available commands
 
 🔧 Some planned Features
