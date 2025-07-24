@@ -36,6 +36,7 @@ db = Database(dataBasePath)
 combatSystems = combatSystem(db, areas, items)
 client.db = db
 client.combatSystem = combatSystems
+client.shopItems = items["shop"]
 
 async def load_extensions():
     for ext in initialExtensions:
