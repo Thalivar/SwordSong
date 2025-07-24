@@ -101,7 +101,7 @@
                     "xpReward": 50,
                     "rarity": "uncommon",
                     "description": "A large fierce bear that are known to be quite territorial. They have sharp claws and run quite fast.",
-                    "lootTalbe": {
+                    "lootTable": {
                         "Bear Pelt": {
                             "chance": 70,
                             "quantity": [1, 2],
@@ -145,7 +145,7 @@
                             "chance": 10,
                             "quantity": 1,
                             "guaranteed": false,
-                            "sellprice": 20,
+                            "sellPrice": 20,
                             "description": "The Heardwood of a treant often refered to it's 'heart'. It's a rare and valuable material that is used in creafting high-quality and powerful weapons and shields."
                         }
                     }

@@ -1,6 +1,7 @@
 import discord
-from discord.ext import commands
 import asyncio
+import random
+from discord.ext import commands
 from services.combadsys import combatSystem
 
 class CombatCog(commands.Cog):
@@ -8,7 +9,7 @@ class CombatCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.db = bot.db
-        self.combat = bot.combat
+        self.combat = bot.combatSystem
         
     @commands.command(name = "fight")
     async def fight(self, ctx):
@@ -36,12 +37,12 @@ class CombatCog(commands.Cog):
             embed = discord.Embed(
                 title = "You are to weak to fight!",
                 description = "You are to weak to fight, go rest up at the campfire before going hunting again.",
-                color = discord.color.red()
+                color = discord.Color.red()
             )
             await ctx.send(embed = embed)
             return
         
-        currentArea = character.get("currentArea", "Forest")
+        currentArea = character.get("currentArea", "forest")
         monster = self.combat.spawnMonster(userID, currentArea)
         if not monster:
             embed = discord.Embed(
@@ -49,7 +50,7 @@ class CombatCog(commands.Cog):
                 description = "Try again later or try hunting somewhere else!",
                 color = discord.Color.orange()
             )
-            await ctx.send(ebmed = embed)
+            await ctx.send(embed = embed)
             return
         
         combatState = self.combat.startCombat(userID, monster)
@@ -115,7 +116,7 @@ class CombatCog(commands.Cog):
             await ctx.send(embed = embed)
             return
         
-        result = self.combat.attack(userID)
+        result = self.combat.processPlayerAttack(userID)
         if "error" in result:
             embed = discord.Embed(
                 title = "Your attack failed!",
@@ -139,7 +140,7 @@ class CombatCog(commands.Cog):
 
         if result.get("monsterDefeated"):
             await self.handleCombatVictory(ctx, userID, monster)
-            combatSystem.endCombat(userID)
+            self.combat.endCombat(userID)
             return
         
         await asyncio.sleep(1)
@@ -147,13 +148,14 @@ class CombatCog(commands.Cog):
     
     @commands.command(name = "skill")
     async def skill(self, ctx, *, skillName = None):
-        print(f"Skill command was called by:", ctx.author.id)
+        print(f"Skill command was called by:", ctx.author.name)
         userID = str(ctx.author.id)
         character = self.db.getCharacter(userID)
-        combatState = self.combat.combatState(userID)
+        combatState = self.combat.getCombatState(userID)
+        monster = combatState["monster"]
         if not character:
             embed = discord.Embed(
-                name = "You're not part of the guild!",
+                title = "You're not part of the guild!",
                 description = "You're not part of SwordSong! So you're not allowed to use skills.",
                 color = discord.Color.red()
             )
@@ -161,7 +163,7 @@ class CombatCog(commands.Cog):
             return
         if not combatState:
             embed = discord.Embed(
-                name = "You're not in combat!",
+                title = "You're not in combat!",
                 description = "You're not allowed to use skills outside of combat.",
                 color = discord.Color.orange()
             )
@@ -169,13 +171,15 @@ class CombatCog(commands.Cog):
             return
         if combatState["turn"] != "player":
             embed = discord.Embed(
-                name ="It's not your turn!",
+                title ="It's not your turn!",
                 description = "Focus on dodging the monsters attacks before using a skill!",
                 color = discord.Color.red()
             )
+            await ctx.send(embed = embed)
+            return
         
         if not skillName:
-            availableSkills = combatSystem.getAvailableSkills(userID)
+            availableSkills = self.combat.getAvailableSkills(userID)
 
             embed = discord.Embed(
                 title = "Available Skills",
@@ -199,7 +203,7 @@ class CombatCog(commands.Cog):
             await ctx.send(embed = embed)
             return
         
-        result = combatSystem.processPlayerAttack(userID, skillName)
+        result = self.combat.processPlayerAttack(userID, skillName)
 
         if "error" in result:
             embed = discord.Embed(
@@ -212,25 +216,25 @@ class CombatCog(commands.Cog):
         
         if result["action"] == "Heal Pulse":
             embed = discord.Embed(
-                name = "💚 Heal Pulse! 💚",
+                title = "💚 Heal Pulse 💚",
                 description = result["message"],
                 color = discord.Color.green()
             )
         elif result["action"] == "Defensive Stance":
             embed = discord.Embed(
-                name = "🛡️ Defensive Stance 🛡️",
+                title = "🛡️ Defensive Stance 🛡️",
                 description = result["message"],
                 color = discord.Color.blue()
             )
         elif result["action"] == "Fire Ball":
             embed = discord.Embed(
-                name = "🔥 Fire Ball 🔥",
+                title = "🔥 Fire Ball 🔥",
                 description = result["message"],
                 color = discord.Color.red()
             )
         elif result["action"] == "Power Strike":
             embed = discord.Embed(
-                name = "⚡ Power Strike ⚡",
+                title = "⚡ Power Strike ⚡",
                 description = result["message"],
                 color = discord.Color.gold()
             )
@@ -241,7 +245,6 @@ class CombatCog(commands.Cog):
                 color = discord.Color.red()
             )
 
-        monster = combatState["monster"]
         if result.get("damage", 0) > 0:
             embed.add_field(
                 name = "Monster's Health",
@@ -253,7 +256,7 @@ class CombatCog(commands.Cog):
 
         if result.get("monsterDefeated"):
             await self.handleCombatVictory(ctx, userID, monster)
-            combatSystem.endCombat(userID)
+            self.combat.endCombat(userID)
             return
         await asyncio.sleep(1)
         await self.processMonsterTurn(ctx, userID, character, monster)
@@ -262,10 +265,112 @@ class CombatCog(commands.Cog):
     async def flee(self, ctx):
         print(f"The flee command was called by:", ctx.author.name)
         userID = str(ctx.author.id)
+        character = self.db.getCharacter(userID)
+        combatState = self.combat.getCombatState(userID)
+        if not character:
+            embed = discord.Embed(
+                title = "You're not part of the guild!",
+                description = "You're not part of SwordSong, so you're able hunt monsters.",
+                color = discord.Color.red()
+            )
+            await ctx.send(embed = embed)
+            return
+        if not combatState:
+            embed = discord.Embed(
+                title = "You're not in combat!",
+                description = "You're not in combat, use `.fight` to start hunting monsters.",
+                color = discord.Color.red()
+            )
+            await ctx.send(embed = embed)
+            return
+        
+        if random.randint(1, 100) <= 70:
+            embed = discord.Embed(
+                title = "💨 You successfully fled! 💨",
+                description = "You managed to successfully escape from the monster!",
+                color = discord.Color.green()
+            )
+            self.combat.endCombat(userID)
+        else:
+            embed = discord.Embed(
+                title = "❌ Flee Failed! ❌",
+                description = "You couldn't escape! The monster managed to catch up to you!",
+                color = discord.Color.red()
+            )
+            await ctx.send(embed = embed)
+
+            await asyncio.sleep(1)
+            await self.processMonsterTurn(ctx, userID, character, combatState["monster"])
+            return
+        await ctx.send(embed = embed)
+
+    @commands.command(name = "rest")
+    async def rest(self, ctx):
+        print("The rest command was called by:", ctx.author.name)
+        userID = str(ctx.author.id)
+        character = self.db.getCharacter(userID)
+        currentHealth = character["health"]
+        maxHealth = character["maxHealth"]
+        ticks = 10
+        percentPerTick = 10
+        if not character:
+            embed = discord.Embed(
+                title = "You're not part of the guild!",
+                description = "You're not part of SwordSong, So you're not allowed in the guilds resting area.",
+                color = discord.Color.red()
+            )
+            await ctx.send(embed = embed)
+            return
+        
+        if currentHealth >= maxHealth:
+            embed = discord.Embed(
+                title = "You are already at full health!",
+                description = "You're already at full health, so don' worry about resting.",
+                color = discord.Color.green()
+            )
+            await ctx.send(embed = embed)
+            return
+        
+        embed = discord.Embed(
+            title = "🔥 Resting at the campfire 🔥",
+            description = "Eat some s'mores and rest for a while to regain your strength.",
+            color = discord.Color.gold()
+        )
+        embed.add_field(
+            name = "Resting...",
+            value = f"❤️ {currentHealth}/{maxHealth}",
+            inline = True
+        )
+        message = await ctx.send(embed = embed)
+
+        for i in range(ticks):
+            healAmount = int(maxHealth * (percentPerTick / 100))
+            newHealth = min(currentHealth + healAmount, maxHealth)
+            self.db.updateCharacter(userID, {"health": newHealth})
+            currentHealth = newHealth
+            
+            embed.set_field_at(
+                0,
+                name = "Resting...",
+                value = f"❤️ {currentHealth}/{maxHealth}",
+                inline = True
+            )
+            embed.set_footer(
+                text = f"Resting for {i + 1}/{ticks}"
+            )
+            await message.edit(embed = embed)
+
+            if newHealth >= maxHealth:
+                break
+            await asyncio.sleep(1)
+        embed.title = "🔥 Resting complete! 🔥"
+        embed.description = "You had enough s'mores for now, get back up and continue fighting!"
+        embed.set_footer(text = None)
+        await message.edit(embed = embed)
 
     # === Helper Functions ===
-    async def handleCombatVictory(ctx, userID, monster):
-        rewards = combatSystem.handleVictory(userID, monster)
+    async def handleCombatVictory(self, ctx, userID, monster):
+        rewards = self.combat.distributeRewards(userID, monster)
         embed = discord.Embed(
             title = "Victory!",
             description = f"You defeated the **{monster["name"]}**! And earned {rewards["xp"]} XP and {rewards["coins"]} coins!",
@@ -288,7 +393,7 @@ class CombatCog(commands.Cog):
         await ctx.send(embed = embed)
 
     async def processMonsterTurn(self, ctx, userID, character, monster):
-        monsterResult = self.combat.monsterAttack(userID)
+        monsterResult = self.combat.processMonsterTurn(userID)
         character = self.db.getCharacter(userID)
 
         if "error" in monsterResult:
@@ -307,7 +412,7 @@ class CombatCog(commands.Cog):
         )
         embed.add_field(
             name = f"{character["name"]}'s Health",
-            value = f"❤️ {monsterResult["playerHealth"]}/{monsterResult["maxHealth"]}",
+            value = f"❤️ {monsterResult["playerHealth"]}/{character["maxHealth"]}",
             inline = True
         )
 
@@ -315,11 +420,14 @@ class CombatCog(commands.Cog):
 
         if monsterResult.get("playerDefeated"):
             embed = discord.Embed(
-                name = "💀 Defeat!",
+                title = "💀 Defeat!",
                 description = "You were unfortunatly defeated by the monster. Go get some rest before hunting again.",
                 color = discord.Color.red()
             )
             await ctx.send(embed = embed)
-            combatSystem.endCombat(userID)
+            self.combat.endCombat(userID)
             return False
         return True
+
+async def setup(bot):
+    await bot.add_cog(CombatCog(bot))

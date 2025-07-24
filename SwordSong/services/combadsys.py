@@ -162,7 +162,7 @@ class combatSystem:
             self.db.setSkillCooldown(userID, skillName, skillData["cooldown"])
 
         # This will handle the heal skill
-        if skillName == "Heal":
+        if skillName == "Heal Pulse":
             healAmount = int(character["maxHealth"] * skillData["healPercent"])
             newHealth = min(character["maxHealth"], character["health"] + healAmount)
             self.db.updateCharacter(userID, {"health": newHealth})
