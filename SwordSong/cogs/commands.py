@@ -137,7 +137,14 @@ class CommandsCog(commands.Cog):
             inline = False
         )
         
-        # Add section equipment here
+        equipment = character["equipment"]
+        equipText = "\n".join([f"{slot.title()}: {item or "Empty"}" for slot, item in equipment.items()])
+        embed.add_field(
+            name = "Equipment",
+            value = equipText,
+            inlinfe = False
+        )
+        embed.set_footer(text = f"Current Area: {character["currentArea"]}")
 
         await ctx.send(embed = embed)
     

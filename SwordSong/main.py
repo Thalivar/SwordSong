@@ -8,12 +8,6 @@ import os
 import sys
 import asyncio
 
-print(f"Current working directory: {os.getcwd()}")
-print(f"botDir: {botDir}")
-print(f"dataDir: {dataDir}")
-print(f"Python path: {sys.path}")
-print(f"Script location: {__file__}")
-
 try:
     with open(dataDir / 'areas.json', 'r') as f:
         areas = json.load(f)
@@ -38,7 +32,7 @@ client.db = db
 client.combatSystem = combatSystems
 client.shopItems = items["shop"]
 
-async def load_extensions():
+async def loadExtensions():
     for ext in initialExtensions:
         try:
             await client.load_extension(ext)
@@ -49,19 +43,19 @@ async def load_extensions():
             traceback.print_exc()
 
 @client.event
-async def on_ready():
+async def onReady():
     await client.change_presence(activity = discord.Activity(type = discord.ActivityType.watching, name = "Over Azefarnia"))
     print(f"Logged in as {client.user}")
 
 @client.event
-async def on_command_error(ctx, error):
+async def onCommandError(ctx, error):
     if isinstance(error, commands.CommandOnCooldown):
         await ctx.send(f"This command is currently on cooldown. Please try again in {error.retry_after:.2f}s.")
     elif isinstance(error, commands.CommandNotFound):
         await ctx.send(f"That command does not exist. Use `.help` to see a list of available commands.")
 
 async def main():
-    await load_extensions()
+    await loadExtensions()
     await client.start(TOKEN)
 
 if __name__ == "__main__":
