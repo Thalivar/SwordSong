@@ -112,16 +112,16 @@ class CommandsCog(commands.Cog):
         print("inventory command was called by", ctx.author.name)
         userID = str(ctx.author.id)
         character = self.db.getCharacter(userID)
-        items = self.db.getInventory(userID)
         if not character:
             embed = discord.Embed(
-                name = "You're not part of the guild",
+                title = "You're not part of the guild",
                 description = "You're not part of SwordSong, so you don't have the guild's magic backpack.",
                 color = discord.Color.red()
             )
             await ctx.send(embed = embed)
             return
         
+        items = self.db.getInventory(userID)
         if items:
             inventoryText = "\n".join([f"{name}: {qty}" for name, qty in items])
         else:
@@ -137,12 +137,12 @@ class CommandsCog(commands.Cog):
             inline = False
         )
         
-        equipment = character["equipment"]
+        equipment = self.db.getEquipment(userID)
         equipText = "\n".join([f"{slot.title()}: {item or "Empty"}" for slot, item in equipment.items()])
         embed.add_field(
             name = "Equipment",
             value = equipText,
-            inlinfe = False
+            inline = False
         )
         embed.set_footer(text = f"Current Area: {character["currentArea"]}")
 
@@ -182,7 +182,7 @@ class CommandsCog(commands.Cog):
                 await ctx.send(embed = embed)
             else:
                 embed = discord.Embed(
-                    name = "A problem arose while you were thinking.",
+                    title = "A problem arose while you were thinking.",
                     description = "If you insist on leaving SwordSong, please try again with `.leaveguild`.",
                     color = discord.Color.orange()
                 )

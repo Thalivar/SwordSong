@@ -109,6 +109,14 @@ class Database:
                 "INSERT INTO characters (userID, name) VALUES (?, ?)",
                 (userID, name)
             )
+
+            equipmentSlots = ["weapon", "offhand", "helmet", "chestplate", "leggings", "boots"]
+            for slot in equipmentSlots:
+                self.cursor.execute(
+                    "INSERT INTO equipment (userID, slot, itemName) VALUES (?, ?, ?)",
+                    (userID, slot, None)
+                )
+
             self.conn.commit()
             return True
         except sqlite3.IntegrityError:

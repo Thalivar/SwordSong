@@ -43,12 +43,12 @@ async def loadExtensions():
             traceback.print_exc()
 
 @client.event
-async def onReady():
+async def on_ready():
     await client.change_presence(activity = discord.Activity(type = discord.ActivityType.watching, name = "Over Azefarnia"))
     print(f"Logged in as {client.user}")
 
 @client.event
-async def onCommandError(ctx, error):
+async def on_command_error(ctx, error):
     if isinstance(error, commands.CommandOnCooldown):
         await ctx.send(f"This command is currently on cooldown. Please try again in {error.retry_after:.2f}s.")
     elif isinstance(error, commands.CommandNotFound):

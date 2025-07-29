@@ -245,7 +245,7 @@ class combatSystem:
 
         result = {
             "damage": damage,
-            "message": f"The {monster["name"]} attack you for {damage} damage!",
+            "message": f"The {monster["name"]} attacked you for {damage} damage!",
             "playerHealth": newHealth
         }
 
