@@ -104,7 +104,6 @@ class CommandsCog(commands.Cog):
         embed.add_field(name = "Health", value = f"{character["health"]}/{character["maxHealth"]}", inline = True)
         embed.add_field(name = "Attack", value = character["attack"], inline = True)
         embed.add_field(name = "Defense", value = character["defense"], inline = True)
-        embed.add_field(name = "Coins", value = character["coins"], inline = True)
         await ctx.send(embed = embed)
 
     @commands.command(name = "inventory")
@@ -121,7 +120,9 @@ class CommandsCog(commands.Cog):
             await ctx.send(embed = embed)
             return
         
+        equipment = self.db.getEquipment(userID)
         items = self.db.getInventory(userID)
+        equipText = "\n".join([f"{slot.title()}: {item or "Empty"}" for slot, item in equipment.items()])
         if items:
             inventoryText = "\n".join([f"{name}: {qty}" for name, qty in items])
         else:
@@ -132,18 +133,21 @@ class CommandsCog(commands.Cog):
             color = discord.Color.blue()
         )
         embed.add_field(
-            name = "Items",
-            value = inventoryText,
-            inline = False
-        )
-        
-        equipment = self.db.getEquipment(userID)
-        equipText = "\n".join([f"{slot.title()}: {item or "Empty"}" for slot, item in equipment.items()])
-        embed.add_field(
             name = "Equipment",
             value = equipText,
             inline = False
         )
+        embed.add_field(
+            name = "Items",
+            value = inventoryText,
+            inline = False
+        )
+        embed.add_field(
+            name = "💰 Your coins",
+            value = f"{character['coins']} coins",
+            inline = False
+        )
+
         embed.set_footer(text = f"Current Area: {character["currentArea"]}")
 
         await ctx.send(embed = embed)

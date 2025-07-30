@@ -8,6 +8,7 @@ class ShopCog(commands.Cog):
         self.bot = bot
         self.db = bot.db
         self.shopItems = bot.shopItems
+        self.areas = bot.areas
 
     @commands.command(name="shop")
     async def shop(self, ctx, page: int = 1):
@@ -24,7 +25,7 @@ class ShopCog(commands.Cog):
 
         if not character:      
             embed=discord.Embed(
-                title = "Not in the guild!",
+                title = "You're not in the guild!",
                 description = "You're not in SwordSong! So you can't use the guild's shop",
                 color = discord.Color.red()
             )
@@ -34,6 +35,12 @@ class ShopCog(commands.Cog):
             title = f"Guild Shop ({page}/{pages})",
             color = discord.Color.gold()
         )
+        embed.add_field(
+            name = "Your coins",
+            value = f"{character['coins']} coins",
+            inline = False
+        )
+
         for item in chunk:
             name = item.get("name", "Unknown")
             price = item.get("buyPrice", 0)
@@ -44,17 +51,18 @@ class ShopCog(commands.Cog):
                 value=f"type: {type}\n{description}",
                 inline=False
             )
-
         msg = await ctx.send(embed=embed)
+
         if pages > 1:
             await msg.add_reaction("⬅️")
             await msg.add_reaction("➡️")
+            await msg.add_reaction("❌")
 
             def check(r, u):
                 return (
                     u == ctx.author and
                     r.message.id == msg.id and
-                    str(r.emoji) in ("⬅️", "➡️")
+                    str(r.emoji) in ("⬅️", "➡️", "❌")
                 )
 
             current   = page - 1
@@ -63,25 +71,52 @@ class ShopCog(commands.Cog):
                     reaction, user = await self.bot.wait_for(
                         "reaction_add", timeout=60, check=check
                     )
-                    current   = (current   + (1 if str(reaction.emoji)=="➡️" else -1)) % pages
-                    newEmbed = discord.Embed(
-                        title=f"Guild Shop ({current + 1}/{pages})",
-                        color=discord.Color.gold()
-                    )
-                    for item in items[current * perPage : current * perPage + perPage]:
-                        name = item.get("name", "Unknown")
-                        price = item.get("buyPrice", 0)
-                        type = item.get("type", "misc")
-                        effect = item.get("effect", {})
-                        description = item.get("description", "")
+                    
+                    if str(reaction.emoji) == "❌":
+                        embed = discord.Embed(
+                            title = "Shop Closed",
+                            description = "Thank you for visiting the guild shop!",
+                            color = discord.Color.dark_red()
+                        )
+                        await msg.edit(embed = embed)
+                        await msg.clear_reactions()
+                        break
+                    else:
+                        current = (current + (1 if str(reaction.emoji) == "➡️" else -1)) % pages
+
+                    if str(reaction.emoji) in ("⬅️", "➡️"):
+                        freshUpdate = self.db.getCharacter(userID)
+
+                        newEmbed = discord.Embed(
+                            title=f"Guild Shop ({current + 1}/{pages})",
+                            color=discord.Color.gold()
+                        )
                         newEmbed.add_field(
-                            name = f"{name} — {price} coins",
-                            value = f"type: {type}\n{description}",
+                            name = "💰 Your Coins",
+                            value = f"{freshUpdate['coins']} coins",
                             inline = False
                         )
-                    await msg.edit(embed = newEmbed)
+
+                        for item in items[current * perPage : current * perPage + perPage]:
+                            name = item.get("name", "Unknown")
+                            price = item.get("buyPrice", 0)
+                            type = item.get("type", "misc")
+                            description = item.get("description", "")
+                            newEmbed.add_field(
+                                name = f"{name} — {price} coins",
+                                value = f"type: {type}\n{description}",
+                                inline = False
+                            )
+                        await msg.edit(embed = newEmbed)
                     await msg.remove_reaction(reaction, user)
                 except asyncio.TimeoutError:
+                    embed = discord.Embed(
+                        title = "Shop Closed",
+                        description = "The shop decided to help someone else while your were deciding what to buy.",
+                        color = discord.Color.orange()
+                    )
+                    await msg.edit(embed = embed)
+                    await msg.clear_reactions()
                     break
     
     @commands.command(name = "buy")
@@ -143,7 +178,7 @@ class ShopCog(commands.Cog):
         character = self.db.getCharacter(userID)
         shopItems = self.shopItems
         inventory = self.db.getInventory(userID)
-        inventoryDict = dict(inventory)
+        inventoryDict = dict(inventory) if inventory else {}
 
         if not character:
             embed = discord.Embed(
@@ -153,35 +188,70 @@ class ShopCog(commands.Cog):
             )
             await ctx.send(embed = embed)
             return
-        
-        if itemName not in inventoryDict or inventoryDict.get(itemName, 0) <= 0:
-            embed = discord.Embed(
-                title = "You can't sell that!",
-                description = "You don't own that item so you're not able to sell it! Use `.inventory` to see all the things you can sell.",
-                color = discord.Color.orange()
-            )
-            await ctx.send(embed = embed)
-            return
     
-        item = next((item for item in shopItems if item["name"].lower() == itemName.lower()), None)
-        if not item:
+        actualItemName = None
+        for invItem, quantity in inventoryDict.items():
+            if invItem.lower() == itemName.lower():
+                actualItemName = invItem
+                break
+
+        if not actualItemName:
             embed = discord.Embed(
-                title = "That item can't be sold!",
-                description = "Unfortunately that item can't be sold here.",
+                title = "You don't have that item!",
+                description = f"You don't have `{itemName}` in your inventory.",
                 color = discord.Color.red()
             )
             await ctx.send(embed = embed)
             return
-    
+
+        item = None
+        for shopItem in shopItems:
+            if shopItem["name"].lower() == actualItemName.lower():
+                item = shopItem
+                break
+        
+        if not item:
+            for area in self.areas.values():
+                for monster in area["monsters"]:
+                    loot = monster["lootTable"].get(actualItemName)
+                    if loot:
+                        item = {
+                            "name": actualItemName,
+                            "sellPrice": loot["sellPrice"],
+                            "desciption": loot["description"]
+                        }
+                        break
+                if item:
+                    break
+
+        if not item:
+            embed = discord.Embed(
+                title = "That item can't be sold!",
+                description = f"Unfortunately '{itemName}' can't be sold here. Only items from the shop can be sold back.",
+                color = discord.Color.red()
+            )
+            await ctx.send(embed = embed)
+            return
+
         sellPrice = item.get("sellPrice", 0)
-    
-        if self.db.removeItem(userID, itemName, 1):
+
+        if sellPrice <= 0:
+            embed = discord.Embed(
+                title = "That item has no sell value!",
+                description = f"'{itemName}' cannot be sold as it has no sell price set.",
+                color = discord.Color.red()
+            )
+            await ctx.send(embed = embed)
+            return
+
+        removalSuccess = self.db.removeItem(userID, actualItemName, 1)
+        if removalSuccess:
             newCoins = character["coins"] + sellPrice
             self.db.updateCharacter(userID, {"coins": newCoins})
-        
+    
             embed = discord.Embed(
                 title = "Item sold!",
-                description = f"You sold **{itemName}** for {sellPrice} coins!",
+                description = f"You sold **{actualItemName}** for {sellPrice} coins!",
                 color = discord.Color.green()
             )
             await ctx.send(embed = embed)
@@ -192,7 +262,6 @@ class ShopCog(commands.Cog):
                 color = discord.Color.red()
             )
             await ctx.send(embed = embed)
-
 
 async def setup(bot):
     await bot.add_cog(ShopCog(bot))

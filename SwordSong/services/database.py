@@ -213,14 +213,14 @@ class Database:
             return False
         
         try:
-            self.cursor.execute("SELECT quantity FROM inventory WHERE userID = ? and itemName = ?", (userID, itemName))
+            self.cursor.execute("SELECT itemName, quantity FROM inventory WHERE userID = ? and LOWER(itemName) = LOWER(?)", (userID, itemName))
             result = self.cursor.fetchone()
 
             if not result:
                 print(f"The item {itemName} has not been found in the inventory of {userID}")
                 return False
             
-            currentQuantity = result[0]
+            actualItemName, currentQuantity = result
 
             if currentQuantity < quantity:
                 print(f"There is not enough quantity of {itemName} in inventory. You have: {currentQuantity}, need: {quantity}")
@@ -229,10 +229,10 @@ class Database:
             newQuantity = currentQuantity - quantity
 
             if newQuantity <= 0:
-                self.cursor.execute("DELETE FROM inventory WHERE userID = ? AND itemName = ?", (userID, itemName))
+                self.cursor.execute("DELETE FROM inventory WHERE userID = ? AND itemName = ?", (userID, actualItemName))
             
             else:
-                self.cursor.execute("UPDATE inventory SET quantity = ? WHERE userID = ? AND itemName = ?", (userID, newQuantity, itemName))
+                self.cursor.execute("UPDATE inventory SET quantity = ? WHERE userID = ? AND itemName = ?", (newQuantity, userID, actualItemName))
             
             self.conn.commit()
             return True

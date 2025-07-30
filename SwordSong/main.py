@@ -31,6 +31,7 @@ combatSystems = combatSystem(db, areas, items)
 client.db = db
 client.combatSystem = combatSystems
 client.shopItems = items["shop"]
+client.areas = areas["areas"]
 
 async def loadExtensions():
     for ext in initialExtensions:
