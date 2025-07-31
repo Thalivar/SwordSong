@@ -10,6 +10,20 @@ class CombatCog(commands.Cog):
         self.bot = bot
         self.db = bot.db
         self.combat = bot.combatSystem
+
+        self.combatEmojis = {
+            "⚔️": "attack",
+            "🔥": "skillMenu",
+            "🏃": "flee",
+            "❌": "cancel"
+        }
+        self.skillEmojis = {
+            "⚡": "Power Strike",
+            "🔥": "Fire Ball",
+            "💚": "Healing Pulse",
+            "🛡️": "Defensive Stance",
+            "🔙": "back"
+        }
         
     @commands.command(name = "fight")
     async def fight(self, ctx):
@@ -82,226 +96,6 @@ class CombatCog(commands.Cog):
             inline = False
         )
 
-        await ctx.send(embed = embed)
-
-    @commands.command(name = "attack")
-    async def attack(self, ctx):
-        print("The attack command was called by:", ctx.author.name)
-        userID = str(ctx.author.id)
-        character = self.db.getCharacter(userID)
-        combatState = self.combat.getCombatState(userID)
-        monster = combatState.get("monster", None)
-        if not character:
-            embed = discord.Embed(
-                title = "You're not part of the guild.",
-                description = "You're not part of SwordSong, so you're not allowed to hunt monsters or fight them.",
-                color = discord.Color.red()
-            )
-            await ctx.send(embed = embed)
-            return
-        if not combatState:
-            embed = discord.Embed(
-                title = "You're are not in combat!",
-                description = "You're not in combat, use `.fight` to start hunting monsters.",
-                color = discord.Color.red()
-            )
-            await ctx.send(embed = embed)
-            return
-        if combatState["turn"] != "player":
-            embed = discord.Embed(
-                title = "It's not your turn!",
-                description = "Focus on dodging the monster's attacks before attack back!",
-                color = discord.Color.red()
-            )
-            await ctx.send(embed = embed)
-            return
-        
-        result = self.combat.processPlayerAttack(userID)
-        if "error" in result:
-            embed = discord.Embed(
-                title = "Your attack failed!",
-                description = result["error"],
-                color = discord.Color.red()
-            )
-            await ctx.send(embed = embed)
-            return
-        
-        embed = discord.Embed(
-            title = "⚔️ Attack Successful! ⚔️",
-            description = result["message"],
-            color = discord.Color.blurple()
-        )
-        embed.add_field(
-            name = "Monster's Health",
-            value = f"❤️ {monster["currentHealth"]}/{monster["maxHealth"]}",
-            inline = True
-        )
-        await ctx.send(embed = embed)
-
-        if result.get("monsterDefeated"):
-            await self.handleCombatVictory(ctx, userID, monster)
-            self.combat.endCombat(userID)
-            return
-        
-        await asyncio.sleep(1)
-        await self.processMonsterTurn(ctx, userID, character, monster)
-    
-    @commands.command(name = "skill")
-    async def skill(self, ctx, *, skillName = None):
-        print(f"Skill command was called by:", ctx.author.name)
-        userID = str(ctx.author.id)
-        character = self.db.getCharacter(userID)
-        combatState = self.combat.getCombatState(userID)
-        monster = combatState["monster"]
-        if not character:
-            embed = discord.Embed(
-                title = "You're not part of the guild!",
-                description = "You're not part of SwordSong! So you're not allowed to use skills.",
-                color = discord.Color.red()
-            )
-            await ctx.send(embed = embed)
-            return
-        if not combatState:
-            embed = discord.Embed(
-                title = "You're not in combat!",
-                description = "You're not allowed to use skills outside of combat.",
-                color = discord.Color.orange()
-            )
-            await ctx.send(embed = embed)
-            return
-        if combatState["turn"] != "player":
-            embed = discord.Embed(
-                title ="It's not your turn!",
-                description = "Focus on dodging the monsters attacks before using a skill!",
-                color = discord.Color.red()
-            )
-            await ctx.send(embed = embed)
-            return
-        
-        if not skillName:
-            availableSkills = self.combat.getAvailableSkills(userID)
-
-            embed = discord.Embed(
-                title = "Available Skills",
-                description = "Please choose a skill to use:",
-                color = discord.Color.dark_blue()
-            )
-
-            for skill in availableSkills:
-                status = "✅ Ready" if skill["canUse"] else f"❌ Cooldown: {skill["cooldownRemaining"]} turn"
-
-                embed.add_field(
-                    name = skill["name"],
-                    value = f"{skill["data"]["description"]}\n{status}",
-                    inline = True
-                )
-            embed.add_field(
-                name = "Usage",
-                value = "Use `.skill <Skill Name> to cast a skill",
-                inline = False
-            )
-            await ctx.send(embed = embed)
-            return
-        
-        result = self.combat.processPlayerAttack(userID, skillName)
-
-        if "error" in result:
-            embed = discord.Embed(
-                title = "Skill Failed!",
-                description = result["error"],
-                color = discord.Color.red()
-            )
-            await ctx.send(embed = embed)
-            return
-        
-        if result["action"] == "Heal Pulse":
-            embed = discord.Embed(
-                title = "💚 Heal Pulse 💚",
-                description = result["message"],
-                color = discord.Color.green()
-            )
-        elif result["action"] == "Defensive Stance":
-            embed = discord.Embed(
-                title = "🛡️ Defensive Stance 🛡️",
-                description = result["message"],
-                color = discord.Color.blue()
-            )
-        elif result["action"] == "Fire Ball":
-            embed = discord.Embed(
-                title = "🔥 Fire Ball 🔥",
-                description = result["message"],
-                color = discord.Color.red()
-            )
-        elif result["action"] == "Power Strike":
-            embed = discord.Embed(
-                title = "⚡ Power Strike ⚡",
-                description = result["message"],
-                color = discord.Color.gold()
-            )
-        else:
-            embed = discord.Embed(
-                title = "Unknown Skill",
-                description = "You don't know that skill, please try casting one that you know.",
-                color = discord.Color.red()
-            )
-
-        if result.get("damage", 0) > 0:
-            embed.add_field(
-                name = "Monster's Health",
-                value = f"❤️ {monster["currentHealth"]}/{monster["maxHealth"]}",
-                inline = True
-            )
-
-        await ctx.send(embed = embed)
-
-        if result.get("monsterDefeated"):
-            await self.handleCombatVictory(ctx, userID, monster)
-            self.combat.endCombat(userID)
-            return
-        await asyncio.sleep(1)
-        await self.processMonsterTurn(ctx, userID, character, monster)
-
-    @commands.command(name = "flee")
-    async def flee(self, ctx):
-        print(f"The flee command was called by:", ctx.author.name)
-        userID = str(ctx.author.id)
-        character = self.db.getCharacter(userID)
-        combatState = self.combat.getCombatState(userID)
-        if not character:
-            embed = discord.Embed(
-                title = "You're not part of the guild!",
-                description = "You're not part of SwordSong, so you're able hunt monsters.",
-                color = discord.Color.red()
-            )
-            await ctx.send(embed = embed)
-            return
-        if not combatState:
-            embed = discord.Embed(
-                title = "You're not in combat!",
-                description = "You're not in combat, use `.fight` to start hunting monsters.",
-                color = discord.Color.red()
-            )
-            await ctx.send(embed = embed)
-            return
-        
-        if random.randint(1, 100) <= 70:
-            embed = discord.Embed(
-                title = "💨 You successfully fled! 💨",
-                description = "You managed to successfully escape from the monster!",
-                color = discord.Color.green()
-            )
-            self.combat.endCombat(userID)
-        else:
-            embed = discord.Embed(
-                title = "❌ Flee Failed! ❌",
-                description = "You couldn't escape! The monster managed to catch up to you!",
-                color = discord.Color.red()
-            )
-            await ctx.send(embed = embed)
-
-            await asyncio.sleep(1)
-            await self.processMonsterTurn(ctx, userID, character, combatState["monster"])
-            return
         await ctx.send(embed = embed)
 
     @commands.command(name = "rest")
@@ -428,6 +222,279 @@ class CombatCog(commands.Cog):
             self.combat.endCombat(userID)
             return False
         return True
+
+    async def showSkillMenu(self, ctx, originalMessage, userID):
+        character = self.db.getCharacter(userID)
+        availableSkills = self.combat.getAvailableSkills(userID)
+
+        embed = discord.Embed(
+            title = "🔥 Choose your skills",
+            description = "Select a skill that you would like to use:",
+            color = discord.Color.dark_magenta()
+        )
+
+        skillMap = {}
+        emojiList = ["⚡", "🔥", "💚", "🛡️"]
+
+        for i, skill in enumerate(availableSkills):
+            if i < len(emojiList):
+                emoji = emojiList[i]
+                skillMap[emoji] = skill["name"]
+
+                status = "✅ Ready" if skill["canUse"] else f"❌ Cooldown: {skill['cooldownRemaining']} turns"
+                manaCost = self.combat.defaultSkills[skill["name"]].get("manaCost", 0)
+                manaStatus = "💙" if character.get("mana", 0) >= manaCost else "💔"
+
+                embed.add_field(
+                    name = f"{emoji} {skill['name']} {manaStatus}({manaCost} mana)",
+                    value = f"{skill['data']['description']}\n{status}",
+                    inline = False
+                )
+            embed.add_field(
+                name = "🔙 Back to Combat",
+                value = "Return to to the main combat menu",
+                inline = False
+            )
+
+        skillMessage = await ctx.send(embed = embed)
+
+        for emoji in skillMap.keys():
+            await skillMessage.add_reaction(emoji)
+        await skillMessage.add_reaction("🔙")
+
+        def skillCheck(reaction, user):
+            return (user.id == int(userID) and str(reaction.emoji) in list(skillMap.keys()) + ["🔙"] and reaction.message.id == skillMessage.id)
+        
+        try:
+            reaction, user = await self.bot.wait_for("reaction_add", timeout = 30.0, check = skillCheck)
+
+            if str(reaction.emoji) == "🔙":
+                await skillMessage.delete()
+                return
+            
+            skillName = skillMap.get(str(reaction.emoji))
+            if skillName:
+                await skillMessage.delete()
+                await self.processSkill(ctx, originalMessage, userID, skillName)
+        
+        except asyncio.TimeoutError:
+            await skillMessage.delete()
+    
+    async def updateCombatDisplay(self, message, userID):
+        combatState = self.combat.getCombatState(userID)
+        character = self.db.getCharacter(userID)
+        monster = combatState["monster"]
+        if not combatState:
+            return
+        
+        embed = discord.Embed(
+            title = "❗ Combat in Progress ❗",
+            description = f"Fighting: **{monster['name']}**\n\n{monster['description']}",
+            color = discord.Color.dark_red()
+        )
+        embed.add_field(
+            name = "Monster's Stats",
+            value = f"❤️ Health: {monster['currentHealth']}/{monster['maxHealth']}\n"
+                    f"⚔️ Attack: {monster['attack']}\n"
+                    f"🛡️ Defense: {monster['defense']}\n"
+                    f"🌟 Rarity: {monster['rarity']}",
+            inline = True
+        )
+        embed.add_field(
+            name = f"{character['name']}'s Stats",
+            value = f"❤️ Health: {character['health']}/{character['maxHealth']}\n"
+                    f"⚔️ Attack: {character['attack']}\n"
+                    f"🛡️ Defense: {character['defense']}\n"
+                    f"🔮 Mana: {character.get('mana', 50)}/{character.get('maxMana', 50)}",
+            inline = True
+        )
+        embed.add_field(
+            name = "Combat Actions",
+            value = "⚔️ - Attack the monster\n"
+                    "🔥 - Use skills\n"
+                    "🏃 - Try to flee\n"
+                    "❌ - Cancel action",
+            inline = False
+        )
+
+        if combatState["turn"] == "player":
+            embed.set_footer(text = "🟢 Your turn - Choose an action!")
+        else:
+            embed.set_footer(text = "🔴 Monster's turn - Prepare to defend!")
+        try:
+            await message.edit(embed = embed)
+        except:
+            pass
+
+    async def processAttack(self, ctx, message, userID):
+        combatState = self.combat.getCombatState(userID)
+        character = self.db.getCharacter(userID)
+        monster = combatState["monster"]
+        result = self.combat.processPlayerAttack(userID)
+        if not combatState or combatState["turn"] != "player":
+            return
+        
+        if "error" in result:
+            embed = discord.Embed(
+                title = "Your attack failed!",
+                description = result["error"],
+                color = discord.Color.red()
+            )
+            await ctx.send(embed = embed)
+            return
+        
+        embed = discord.Embed(
+            title = "⚔️ Attack Successful! ⚔️",
+            description = result["message"],
+            color = discord.Color.blurple()
+        )
+        embed.add_field(
+            name = "Monster's Health",
+            value = f"❤️ {monster['currentHealth']}/{monster['maxHealth']}",
+            inline = True
+        )
+        await ctx.send(embed = embed)
+
+        if result.get("monsterDefeated"):
+            await self.handleCombatVictory(ctx, userID, monster)
+            await message.clear_reactions()
+            self.combat.endCombat
+            return
+        
+        await asyncio.sleep(1)
+        await self.processMonsterTurn(ctx, userID, character, monster)
+        await self.updateCombatDisplay(message, userID)
+
+    async def processSkill(self, ctx, message, userID, skillName):
+        combatState = self.combat.getCombatstate(userID)
+        character = self.db.getCharacter(userID)
+        monster = combatState["monster"]
+        if not combatState or combatState["turn"] != "player":
+            return
+        
+        result = self.combat.processPlayerAttack(userID, skillName)
+        if "error" in result:
+            embed = discord.Embed(
+                title = "Skill Failed!",
+                description = result["error"],
+                color = discord.Color.red()
+            )
+            await ctx.send(embed = embed)
+            return
+        
+        if result["action"] == "Healing Pulse":
+            embed = discord.Embed(
+                title = "💚 Healing Pulse 💚",
+                description = result["message"],
+                color = discord.Color.green()
+            )
+        elif result["action"] == "Defensive Stance":
+            embed = discord.Embed(
+                title = "🛡️ Defensive Stance 🛡️",
+                description = result["message"],
+                color = discord.Color.blue()
+            )
+        elif result["action"] == "Fire Ball":
+            embed = discord.Embed(
+                title = "🔥 Fire Ball 🔥",
+                description = result["message"],
+                color = discord.Color.red()
+            )
+        elif result["action"] == "Power Strike":
+            embed = discord.Embed(
+                title = "⚡ Power Strike ⚡",
+                description = result["message"],
+                color = discord.Color.gold()
+            )
+
+        if result.get("damage", 0) > 0:
+            embed.add_field(
+                name = "Monster's Health",
+                value = f"❤️ {monster['currentHealth']}/{monster['maxHealth']}",
+                inline = True
+            )
+        await ctx.send(embed = embed)
+
+        if result.get("monsterDefeated"):
+            await self.handleCombatVictory(ctx, userID, monster)
+            await message.clear_reactions()
+            self.combat.endCombat(userID)
+            return
+        
+        await asyncio.sleep(1)
+        await self.processMonsterTurn(ctx, userID, character, monster)
+        await self.updateCombatDisplay(message, userID)
+    
+    async def processFlee(self, ctx, message, userID):
+        combatState = self.combat.getCombatState(userID)
+        character = self.db.getCharacter(userID)
+        if not combatState:
+            return
+        
+        if random.randint(1, 100) <= 70:
+            embed = discord.Embed(
+                title = "💨 You successfully fled! 💨",
+                description = "You managed to succsessfully escape from the monster!",
+                color = discord.Color.green()
+            )
+            await message.clear_reactions()
+            self.combat.endCombat(userID)
+            await ctx.send(embed = embed)
+        else:
+            embed = discord.Embed(
+                title = "❌ Your Flee Attempt Failed! ❌",
+                description = "YOu couldn't escape the monster!",
+                color = discord.Color.red()
+            )
+            await ctx.send(embed = embed)
+
+            await asyncio.sleep(1)
+            await self.processMonsterTurn(ctx, userID, character, combatState["monster"])
+            await self.updateCombatDisplay(message, userID)
+
+    async def handleCombatReactions(self, ctx, message, userID):
+
+        def check(reaction, user):
+            return (user.id == int(userID) and str(reaction.emoji) in self.combat_emojis and reaction.message.id == message.id)
+
+        while True:
+            combatState = self.combat.getCombatSate(userID)
+            if not combatState:
+                break
+
+            if combatState["turn"] != "player":
+                await asyncio.sleep(0.5)
+                continue
+
+            try:
+                reaction, user = await self.bot.wait_for("reaction_add", timeout = 60.0, check = check)
+                action = self.combatEmojis[str(reaction.emoji)]
+
+                try:
+                    await message.remove_reaction(reaction.emoji, user)
+                except:
+                    pass
+
+                if action == "attack":
+                    await self.processAttack(ctx, message, userID)
+                elif action == "skillMenu":
+                    await self.showSkillMenu(ctx, message, userID)
+                elif action == "flee":
+                    await self.processFlee(ctx, message, userID)
+                elif action == "cancel":
+                    continue
+
+            except asyncio.TimeoutError:
+
+                embed = discord.Embed(
+                    title = "Combat Timeout",
+                    description = "The monster got bored while you were hiding so it walked away.",
+                    color = discord.Color.orange()
+                )
+                await message.edit(embed = embed)
+                await message.clear_reactions()
+                self.combat.endCombat(userID)
+                break
 
 async def setup(bot):
     await bot.add_cog(CombatCog(bot))

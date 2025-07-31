@@ -34,7 +34,7 @@ class combatSystem:
                 "healPercent": 0.4,
                 "cooldown": 4,
                 "manaCost": 1.5,
-                "description": "A magical pulse that heals 30% of your maximum health"
+                "description": "A magical pulse that heals 40% of your maximum health"
             },
             "Defensive Stance": {
                 "damageMultiplier": 0.5,
@@ -138,7 +138,12 @@ class combatSystem:
             return {"error": "Character is not found"}
         
         monster = combatState["monster"]
-        result = {"action": "attack", "damage": 0, "message": ""}
+        result = {
+            "action": skillName or "attack",
+            "damage": 0,
+            "heal": 0,
+            "cooldown": 0
+        }
 
         # Handles skill usage
         skillData = None
@@ -162,7 +167,7 @@ class combatSystem:
             self.db.setSkillCooldown(userID, skillName, skillData["cooldown"])
 
         # This will handle the heal skill
-        if skillName == "Heal Pulse":
+        if skillName == "Healing Pulse":
             healAmount = int(character["maxHealth"] * skillData["healPercent"])
             newHealth = min(character["maxHealth"], character["health"] + healAmount)
             self.db.updateCharacter(userID, {"health": newHealth})
