@@ -33,7 +33,7 @@ class combatSystem:
             "Healing Pulse": {
                 "healPercent": 0.4,
                 "cooldown": 4,
-                "manaCost": 1.5,
+                "manaCost": 15,
                 "description": "A magical pulse that heals 40% of your maximum health"
             },
             "Defensive Stance": {
@@ -42,7 +42,7 @@ class combatSystem:
                 "duration": 3,
                 "cooldown": 5,
                 "manaCost": 20,
-                "description": "Take 50% for 3 turns but at a cost of dealing less damage"
+                "description": "Take 50% for 3 turns"
             }
         }
 

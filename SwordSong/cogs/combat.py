@@ -75,28 +75,34 @@ class CombatCog(commands.Cog):
         )
         embed.add_field(
             name = "Monster's Stats",
-            value = f"❤️ Health: {monster["currentHealth"]}/{monster["maxHealth"]}"
-                    f"⚔️ Attack: {monster["attack"]}"
-                    f"🛡️ Defense: {monster["defense"]}"
+            value = f"❤️ Health: {monster["currentHealth"]}/{monster["maxHealth"]}\n"
+                    f"⚔️ Attack: {monster["attack"]}\n"
+                    f"🛡️ Defense: {monster["defense"]}\n"
                     f"🌟 Rarity: {monster["rarity"]}",
             inline = True
         )
         embed.add_field(
             name = f"{character["name"]}'s Stats",
-            value = f"❤️ Health: {character["health"]}/{character["maxHealth"]}"
-                    f"⚔️ Attack: {character["attack"]}"
-                    f"🛡️ Defense: {character["defense"]}",
+            value = f"❤️ Health: {character["health"]}/{character["maxHealth"]}\n"
+                    f"⚔️ Attack: {character["attack"]}\n"
+                    f"🛡️ Defense: {character["defense"]}\n"
+                    f"🔮 Mana: {character.get('mana', 50)}/{character.get('maxMana', 50)}",
             inline = True
         )
         embed.add_field(
             name = "Combat Commands",
-            value = "Use `.attack` - to attack the monster.\n"
-                    "Use `.flee` - to try and escape from the monster.\n"
-                    "Use `.skill` - to use a skill.",
+            value = "⚔️ - to attack the monster.\n"
+                    "🏃 - to try and escape from the monster.\n"
+                    "🔥 - to use a skill.\n"
+                    "❌ - Cancel action",
             inline = False
         )
 
-        await ctx.send(embed = embed)
+        message = await ctx.send(embed = embed)
+        for emoji in self.combatEmojis.keys():
+            await message.add_reaction(emoji)
+        
+        await self.handleCombatReactions(ctx, message, userID)
 
     @commands.command(name = "rest")
     async def rest(self, ctx):
@@ -250,11 +256,11 @@ class CombatCog(commands.Cog):
                     value = f"{skill['data']['description']}\n{status}",
                     inline = False
                 )
-            embed.add_field(
-                name = "🔙 Back to Combat",
-                value = "Return to to the main combat menu",
-                inline = False
-            )
+        embed.add_field(
+            name = "🔙 Back to Combat",
+            value = "Return to to the main combat menu",
+            inline = False
+        )
 
         skillMessage = await ctx.send(embed = embed)
 
@@ -358,7 +364,7 @@ class CombatCog(commands.Cog):
         if result.get("monsterDefeated"):
             await self.handleCombatVictory(ctx, userID, monster)
             await message.clear_reactions()
-            self.combat.endCombat
+            self.combat.endCombat(userID)
             return
         
         await asyncio.sleep(1)
@@ -366,7 +372,7 @@ class CombatCog(commands.Cog):
         await self.updateCombatDisplay(message, userID)
 
     async def processSkill(self, ctx, message, userID, skillName):
-        combatState = self.combat.getCombatstate(userID)
+        combatState = self.combat.getCombatState(userID)
         character = self.db.getCharacter(userID)
         monster = combatState["monster"]
         if not combatState or combatState["turn"] != "player":
@@ -455,10 +461,10 @@ class CombatCog(commands.Cog):
     async def handleCombatReactions(self, ctx, message, userID):
 
         def check(reaction, user):
-            return (user.id == int(userID) and str(reaction.emoji) in self.combat_emojis and reaction.message.id == message.id)
+            return (user.id == int(userID) and str(reaction.emoji) in self.combatEmojis and reaction.message.id == message.id)
 
         while True:
-            combatState = self.combat.getCombatSate(userID)
+            combatState = self.combat.getCombatState(userID)
             if not combatState:
                 break
 
