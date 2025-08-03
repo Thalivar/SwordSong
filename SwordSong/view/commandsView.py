@@ -8,7 +8,7 @@ class HelpView(discord.ui.View):
         self.bot = bot
 
     @discord.ui.button(label = "Commands", style = discord.ButtonStyle.primary, emoji = "⚔️")
-    async def showCommands(self, interaction: discord.Integration, button: discord.ui.Button):
+    async def showCommands(self, interaction: discord.Interaction, button: discord.ui.Button):
         embed = discord.Embed(
             title = "⚔️ Combat & Adventure Commands ⚔️",
             description = "Commands for fighting and exploring Azefarnia",
@@ -21,7 +21,7 @@ class HelpView(discord.ui.View):
 
         await interaction.response.edit_message(embed = embed, view = self)
         
-    @discord.ui.button(label = "Character", stule = discord.ButtonStyle.secondary, emoji = "👤")
+    @discord.ui.button(label = "Character", style = discord.ButtonStyle.secondary, emoji = "👤")
     async def showCharacter(self, interaction: discord.Interaction, button: discord.ui.Button):
         embed = discord.Embed(
             title = "👤 Character Commands 👤",
@@ -75,10 +75,45 @@ class HelpView(discord.ui.View):
         embed.set_footer(text = "Click the buttons below to explore different command categories")
 
         await interaction.response.edit_message(embed = embed, view = self)
+    
+    @discord.ui.button(label = "Close", style = discord.ButtonStyle.gray, emoji = "❌")
+    async def closeHelp(self, interaction: discord.Interaction, button: discord.ui.Button):
+        embed = discord.Embed(
+            title = "Help Closed",
+            description = "You put away the help scroll back into your backpack.\n"
+                          "If you need help again open it with `.help`",
+            color = discord.Color.gray()
+        )
+        await interaction.response.edit_message(embed = embed, view = None)
         
-    async def onTimeout(self):
+    async def on_timeout(self):
         for item in self.children:
-            item.disable = True
+            item.disabled = True
+
+class StartView(discord.ui.View):
+    def __init__(self, bot):
+        super().__init__(timeout = 300)
+        self.bot = bot
+    
+    @discord.ui.button(label = "Join SwordSong", style = discord.ButtonStyle.success, emoji = "⚔️")
+    async def joinGuild(self, interaction: discord.Interaction, button: discord.ui.Button):
+        userID = str(interaction.user.id)
+
+        if self.bot.db.getCharacter(userID):
+            embed = discord.Embed(
+                title = "You're already part of the guild!",
+                description = "You're already a member of SwordSong. Use `.profile` to view your character stats.",
+                color = discord.Color.orange()
+            )
+            await interaction.response.edit_message(embed = embed, view = None)
+            return
+        
+        modal = NameInputModal(self.bot)
+        await interaction.response.send_modal(modal)
+    
+    async def on_timeout(self):
+        for item in self.children:
+            item.disabled = True
 
 class NameInputModal(discord.ui.Modal, title = "Join SwordSong"):
     def __init__(self, bot):
@@ -86,43 +121,57 @@ class NameInputModal(discord.ui.Modal, title = "Join SwordSong"):
         self.bot = bot
     
     name = discord.ui.TextInput(
-        label = "What would you like to be know by?",
+        label = "What would you like to be known by?",
         placeholder = "Enter your character's name ...",
         max_length = 50,
         min_length = 1
     )
 
-    async def onSubmit(self, interaction: discord.Interaction):
+    async def on_submit(self, interaction: discord.Interaction):
         userID = str(interaction.user.id)
         characterName = self.name.value.strip()
 
-        if self.bot.db.createCharacter(userID, characterName):
+        try:
+            if self.bot.db.createCharacter(userID, characterName):
+                embed = discord.Embed(
+                    title = "Welcome to SwordSong!",
+                    description = f"Welcome, {characterName}! You adventure across Azefarnia begins now.",
+                    color = discord.Color.green()
+                )
+                embed.add_field(
+                    name = "Next Steps",
+                    value = "Use `.profile` to view your stats\n"
+                            "Use `.fight` to go on a adventure to battle monsters\n"
+                            "Use `.help` for a scroll full with commands",
+                    inline = False
+                )
+            else:
+                embed = discord.Embed(
+                    title = "Sorry Traveler!",
+                    description = "There was an issue while trying to enlist you. Please try again later",
+                    color = discord.Color.dark_red()
+                )
+        except Exception as e:
+            print(f"Error creating character: {e}")
             embed = discord.Embed(
-                title = "Welcome to SwordSong!",
-                description = f"Weclome, {characterName}! You adventure across Azefarnia begins now.",
-                color = discord.Color.green()
-            )
-            embed.add_field(
-                name = "Next Steps",
-                value = "Use `.profile` to view your stats\n"
-                        "Use `.fight` to go on a adventure to battle monsters\n"
-                        "Use `.help` for a scroll full with commands",
-                inline = False
-            )
-        else:
-            embed = discord.Embed(
-                title = "Sorry Traveler!",
-                description = "There was an issue while trying to enlist you. Please try again later",
-                color = discord.Color.dark_red()
-            )
+                    title = "Sorry Traveler!",
+                    description = "There was an issue while trying to enlist you. Please try again later",
+                    color = discord.Color.dark_red()
+                )
 
-        await interaction.response.edit_message(embed = embed, view = self)
+        await interaction.response.send_message(embed = embed, ephemeral = True)
 
 class ProfileView(discord.ui.View):
     def __init__(self, bot, character):
         super().__init__(timeout = 300)
         self.bot = bot
         self.character = character
+
+    @discord.ui.button(label = "View Inventory", style = discord.ButtonStyle.secondary, emoji = "🎒")
+    async def viewInventory(self, interaction: discord.Interaction, button: discord.ui.Button):
+        userID = str(interaction.user.id)
+        inventoryView = InventoryView(self.bot, self.character)
+        await inventoryView.showInventory(interaction)
     
     @discord.ui.button(label = "Refresh Stats", style = discord.ButtonStyle.primary, emoji = "🔄")
     async def refreshProfile(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -143,7 +192,7 @@ class ProfileView(discord.ui.View):
             color = discord.Color.blue()
         )
         embed.add_field(name = "📈 Level", value = self.character["level"], inline = True)
-        embed.add_field(name = "✨ XP", vlaue = f"{self.character['xp']}/{self.character['xpToLevel']}", inline = True)
+        embed.add_field(name = "✨ XP", value = f"{self.character['xp']}/{self.character['xpToLevel']}", inline = True)
         embed.add_field(name = "🌲 Area", value = self.character.get("currentArea", "forest").capitalize(), inline = True)
 
         embed.add_field(name = "❤️ Health", value = f"{self.character['health']}/{self.character['maxHealth']}", inline = True)
@@ -154,14 +203,16 @@ class ProfileView(discord.ui.View):
         embed.add_field(name = "🔮 Mana", value = f"{self.character.get('mana', 50)}/{self.character.get('maxMana', 50)}", inline = True)
         embed.add_field(name = "\u200b", value = "\u200b", inline = True) # <- Temp empty field for alignment
 
-        self.character = self.character
         await interaction.response.edit_message(embed = embed, view = self)
-
-    @discord.ui.button(label = "View Inventory", style = discord.ButtonStyle.secondary, emoji = "🎒")
-    async def viewInventory(self, interaction: discord.Interaction, button: discord.ui.Button):
-        userID = str(interaction.user.id)
-        inventoryView = inventoryView(self.bot, self.character)
-        await inventoryView.showInventory(interaction)
+    
+    @discord.ui.button(label = "Close", style = discord.ButtonStyle.gray, emoji = "❌")
+    async def closeProfile(self, interaction: discord.Interaction, button: discord.ui.Button):
+        embed = discord.Embed(
+            title = "Profile Closed",
+            description = "You stopped looking at your character profile.",
+            color = discord.Color.gray()
+        )
+        await interaction.response.edit_message(embed = embed, view = None)
     
     async def on_timeout(self):
         for item in self.children:
@@ -191,13 +242,13 @@ class InventoryView(discord.ui.View):
         )
 
         if items:
-            InventoryText = "\n".join([f"{name}: {qty}" for name, qty in items])
+            inventoryText = "\n".join([f"{name}: {qty}" for name, qty in items])
         else:
-            InventoryText = "Empty"
+            inventoryText = "Empty"
 
         embed.add_field(
             name = "🎒 Items 🎒",
-            value = InventoryText,
+            value = inventoryText,
             inline = False
         )
         embed.add_field(
@@ -206,19 +257,21 @@ class InventoryView(discord.ui.View):
             inline = False
         )
 
-        embed.set_footer(text = f"Current Area: {self.character.get('CurrentArea', 'forest').capitalize()}")
+        embed.set_footer(text = f"Current Area: {self.character.get('currentArea', 'forest').capitalize()}")
         await interaction.response.edit_message(embed = embed, view = self)
     
     @discord.ui.button(label = "Back to Profile", style = discord.ButtonStyle.gray, emoji = "👤")
     async def backToProfile(self, interaction: discord.Interaction, button: discord.ui.Button):
-        profileView = profileView(self.bot, self.character)
+        userID = str(interaction.user.id)
+        self.character = self.bot.db.getCharacter(userID)
+        profileView = ProfileView(self.bot, self.character)
 
         embed = discord.Embed(
             title = f"{self.character['name']}'s Profile",
             color = discord.Color.blue()
         )
         embed.add_field(name = "📈 Level", value = self.character["level"], inline = True)
-        embed.add_field(name = "✨ XP", vlaue = f"{self.character['xp']}/{self.character['xpToLevel']}", inline = True)
+        embed.add_field(name = "✨ XP", value = f"{self.character['xp']}/{self.character['xpToLevel']}", inline = True)
         embed.add_field(name = "🌲 Area", value = self.character.get("currentArea", "forest").capitalize(), inline = True)
 
         embed.add_field(name = "❤️ Health", value = f"{self.character['health']}/{self.character['maxHealth']}", inline = True)
@@ -229,11 +282,20 @@ class InventoryView(discord.ui.View):
         embed.add_field(name = "🔮 Mana", value = f"{self.character.get('mana', 50)}/{self.character.get('maxMana', 50)}", inline = True)
         embed.add_field(name = "\u200b", value = "\u200b", inline = True) # <- Temp empty field for alignment
 
-        await interaction.response.edit_message(embed = embed, view = self)
+        await interaction.response.edit_message(embed = embed, view = profileView)
 
     @discord.ui.button(label = "Refresh", style = discord.ButtonStyle.primary, emoji = "🔄")
     async def refreshInventory(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self.showInventory(interaction)
+    
+    @discord.ui.button(label = "Close", style = discord.ButtonStyle.gray, emoji = "❌")
+    async def closeInventory(self, interaction: discord.Interaction, button: discord.ui.Button):
+        embed = discord.Embed(
+            title = "Inventory Closed",
+            description = "You stopped looking in your backpack.",
+            color = discord.Color.gray()
+        )
+        await interaction.response.edit_message(embed = embed, view = None)
     
     async def on_timeout(self):
         for item in self.children:

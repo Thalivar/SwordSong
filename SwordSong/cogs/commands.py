@@ -1,6 +1,7 @@
 import discord
 import asyncio
 from discord.ext import commands
+from view.commandsView import HelpView, StartView, ProfileView, InventoryView, LeaveGuildView
 
 class CommandsCog(commands.Cog):
     def __init__(self, bot):
@@ -10,74 +11,41 @@ class CommandsCog(commands.Cog):
     @commands.command(name = "help")
     async def help(self, ctx):
         print("Help command was called by:", ctx.author.name)
+        
         embed = discord.Embed(
-            name = "SwordSong's Help Scroll",
-            description = "List of available commands.",
-            color = discord.Color.random()
+            title = "📜 SwordSong's Help Scroll 📜",
+            description = "Welcome To SwordSong! Choose a category to view commands:",
+            color = discord.Color.gold()
         )
-        embed.add_field(name = ".start", value = "Start your adventure for the guild SwordSong in Azefarnia", inline = False)
-        embed.add_field(name = ".profile", value = "View your character's profile", inline = False)
-        embed.add_field(name = ".inventory", value = "View all the wares you currently have in your inventory", inline = False)
-        embed.add_field(name = ".shop", value = "WIP View all the items that are available for purchase", inline = False)
-        embed.add_field(name = ".buy <item>", value = "WIP But the desired items from the shop", inline = False)
-        embed.add_field(name = ".sell <item>", value = "WIP Sell an item from your inventory to the shop", inline = False)
-        embed.add_field(name = ".equip <item>", value = "WIP Equip a weapon or armor from your inventory", inline = False)
-        embed.add_field(name = ".unequip <item>", value = "WIP unequip a weapon or armor that you're currently wearing", inline = False)
-        embed.add_field(name = ".travel", value = "WIP Travel between the regions of Azefarnia and find new monsters and people", inline = False)
-        embed.add_field(name = ".map", value = "WIP view the map of Azefarnia!", inline = False)
-        embed.add_field(name = ".fight", value = "Go on an adventure to hunt monsters and earn loot", inline = False)
-        embed.add_field(name = ".leaveguild", value = "If you ever desire to leave SwordSong", inline = False)
-        await ctx.send(embed = embed)
+        embed.add_field(
+            name = "Getting started",
+            value = "Use `.start` to being your adventure in Azefarnia!",
+            inline = False
+        )
+        embed.set_footer(text = "Click the buttons below to explore different command categories")
+
+        view = HelpView(self.bot)
+        await ctx.send(embed = embed, view = view)
 
     @commands.command(name = "start")
     async def start(self, ctx):
         print("Start command was called by", ctx.author.name)
-        userID = str(ctx.author.id)
-        character = self.db.getCharacter(userID)
-        if character:
-            embed = discord.Embed(
-                title = f"You're already part of the guild {character["name"]}!",
-                description = "You're already in the guild, go out and hunt monsters and make yourself useful!",
-                color = discord.Color.red()
-            )
-            await ctx.send(embed = embed)
-            return
         
         embed = discord.Embed(
             title = "Welcome to SwordSong!",
-            description = "Welcome to SwordSong! What would you like to be known by?",
-            color = discord.Color.orange()
+            description = "Join the guild SwordSong and start your adventure across the mystical land of Azefarnia!",
+            color = discord.Color.gold()
         )
-        await ctx.send(embed = embed)
-
-        def check(m):
-            return m.author == ctx.author and m.channel == ctx.channel
-        
-        try:
-            msg = await self.bot.wait_for("message", check = check, timeout = 30.0)
-            if self.db.createCharacter(userID, msg.content):
-                defaultArea = "forest"
-                embed = discord.Embed(
-                    title = "Welcome to SwordSong!",
-                    description = f"Welcome, {msg.content}! Your adventure across Azefarnia begins now.",
-                    color = discord.Color.green()
-                )
-                await ctx.send(embed = embed)
-            else:
-                embed = discord.Embed(
-                    title = "Sorry traveler!",
-                    description = "Apologies traveler, there was an issue while trying to enlist you. Please try again later.",
-                    color = discord.Color.dark_red()
-                )
-                await ctx.send(embed = embed)
-                return
-        except asyncio.TimeoutError:
-            embed = discord.Embed(
-                title = "Timeout",
-                description = "You took to long to tell us your name. Please try again once you thought of a name.",
-                color = discord.Color.red()
-            )
-            await ctx.send(embed = embed)
+        embed.add_field(
+            name = "What awaits you:",
+            value = "🗡️ Epic battles with monsters\n"
+                    "💰 Treasures and rewards\n"
+                    "🌍 Vast lands and secrets to explore",
+            inline = False
+        )
+        embed.set_footer(text = "Click the button below to join the guild!")
+        view = StartView(self.bot)
+        await ctx.send(embed = embed, view = view)
 
     @commands.command(name = "profile")
     async def profile(self, ctx):
@@ -98,13 +66,20 @@ class CommandsCog(commands.Cog):
             color = discord.Color.blue()
         )
 
-        embed.add_field(name = "Level", value = character["level"], inline = True)
-        embed.add_field(name = "XP", value = f"{character["xp"]}/{character['xpToLevel']}", inline = True)
-        embed.add_field(name = "Area", value = character.get("currentArea", "forest").capitalize(), inline = True)
-        embed.add_field(name = "Health", value = f"{character["health"]}/{character["maxHealth"]}", inline = True)
-        embed.add_field(name = "Attack", value = character["attack"], inline = True)
-        embed.add_field(name = "Defense", value = character["defense"], inline = True)
-        await ctx.send(embed = embed)
+        embed.add_field(name = "📈 Level", value = character["level"], inline = True)
+        embed.add_field(name = "✨ XP", value = f"{character['xp']}/{character['xpToLevel']}", inline = True)
+        embed.add_field(name = "🌲 Area", value = character.get("currentArea", "forest").capitalize(), inline = True)
+
+        embed.add_field(name = "❤️ Health", value = f"{character['health']}/{character['maxHealth']}", inline = True)
+        embed.add_field(name = "⚔️ Attack", value = character["attack"], inline = True)
+        embed.add_field(name = "🛡️ Defense", value = character["defense"], inline = True)
+
+        embed.add_field(name = "💰 Coins", value = f"{character['coins']} coins", inline = True)
+        embed.add_field(name = "🔮 Mana", value = f"{character.get('mana', 50)}/{character.get('maxMana', 50)}", inline = True)
+        embed.add_field(name = "\u200b", value = "\u200b", inline = True)
+
+        view = ProfileView(self.bot, character)
+        await ctx.send(embed = embed, view = view)
 
     @commands.command(name = "inventory")
     async def inventory(self, ctx):
@@ -122,35 +97,36 @@ class CommandsCog(commands.Cog):
         
         equipment = self.db.getEquipment(userID)
         items = self.db.getInventory(userID)
-        equipText = "\n".join([f"{slot.title()}: {item or "Empty"}" for slot, item in equipment.items()])
+        equipText = "\n".join([f"{slot.title()}: {item or 'Empty'}" for slot, item in equipment.items()])
+        embed = discord.Embed(
+            title = f"{character['name']}'s Inventory",
+            color = discord.Color.blue()
+        )
+        embed.add_field(
+            name = "🛡️ Equipment 🛡️",
+            value = equipText or "No Equipment",
+            inline = False
+        )
+
         if items:
             inventoryText = "\n".join([f"{name}: {qty}" for name, qty in items])
         else:
             inventoryText = "Empty"
-        
-        embed = discord.Embed(
-            title = f"{character["name"]}'s Inventory",
-            color = discord.Color.blue()
-        )
+
         embed.add_field(
-            name = "Equipment",
-            value = equipText,
-            inline = False
-        )
-        embed.add_field(
-            name = "Items",
+            name = "🎒 Items 🎒",
             value = inventoryText,
             inline = False
         )
         embed.add_field(
-            name = "💰 Your coins",
+            name = "💰 Coins 💰",
             value = f"{character['coins']} coins",
             inline = False
         )
 
-        embed.set_footer(text = f"Current Area: {character["currentArea"]}")
-
-        await ctx.send(embed = embed)
+        embed.set_footer(text = f"Current Area: {character.get('currentArea', 'forest').capitalize()}")
+        view = InventoryView(self.bot, character)
+        await ctx.send(embed = embed, view = view)
     
     @commands.command(name = "leaveguild")
     async def leaveguild(self, ctx):
@@ -166,38 +142,21 @@ class CommandsCog(commands.Cog):
             return
         
         embed = discord.Embed(
-            title = "Are you sure you want to leave the guild?",
-            description = "This action cannot be undone. Type `yes` to confirm that you want to leave SwordSong.",
+            title = "⚠️ Are you sure you want to leave the guild? ⚠️",
+            description = "This action **cannot be undone**. You will lose all your progress, items, and character data.",
             color = discord.Color.red()
         )
-        await ctx.send(embed = embed)
+        embed.add_field(
+            name = "What you'll lose:",
+            value = "- Your character data and all stats\n"
+                    "- All items and equipment\n"
+                    "- All coins and progress",
+            inline = False
+        )
+        embed.set_footer(text = "Think carefully before making this decision!")
 
-        def check(m):
-            return m.author == ctx.author and m.channel == ctx.channel and m.content.lower() == "yes"
-        
-        try:
-            await self.bot.wait_for("message", check = check, timeout = 30.0)
-            if self.db.deleteCharacter(userID):
-                embed = discord.Embed(
-                    title = "You left the guild.",
-                    description = "You successfully left SwordSong. If you wish to rejoin in the future, use `.start` to join again.",
-                    color = discord.Color.green()
-                )
-                await ctx.send(embed = embed)
-            else:
-                embed = discord.Embed(
-                    title = "A problem arose while you were thinking.",
-                    description = "If you insist on leaving SwordSong, please try again with `.leaveguild`.",
-                    color = discord.Color.orange()
-                )
-                await ctx.send(embed = embed)
-        except asyncio.TimeoutError:
-            embed = discord.Embed(
-                title = "Timeout",
-                description = "You were thinking for too long. If you really insist on leaving, please use `/leaveguild` again.",
-                color = discord.Color.red()
-            )
-            await ctx.send(embed = embed)
+        view = LeaveGuildView(self.bot)
+        await ctx.send(embed = embed, view = view)
 
 async def setup(bot):
     await bot.add_cog(CommandsCog(bot))
