@@ -4,7 +4,7 @@ import asyncio
 
 class HelpView(discord.ui.View):
     def __init__(self, bot):
-        super().__init__(timeout = 300)
+        super().__init__(timeout = 120)
         self.bot = bot
 
     @discord.ui.button(label = "Commands", style = discord.ButtonStyle.primary, emoji = "⚔️")
@@ -75,24 +75,26 @@ class HelpView(discord.ui.View):
         embed.set_footer(text = "Click the buttons below to explore different command categories")
 
         await interaction.response.edit_message(embed = embed, view = self)
-    
-    @discord.ui.button(label = "Close", style = discord.ButtonStyle.gray, emoji = "❌")
-    async def closeHelp(self, interaction: discord.Interaction, button: discord.ui.Button):
-        embed = discord.Embed(
-            title = "Help Closed",
-            description = "You put away the help scroll back into your backpack.\n"
-                          "If you need help again open it with `.help`",
-            color = discord.Color.gray()
-        )
-        await interaction.response.edit_message(embed = embed, view = None)
         
     async def on_timeout(self):
-        for item in self.children:
-            item.disabled = True
+        try:
+            await self.message.delete()
+        except:
+            for item in self.children:
+                item.disabled = True
+            try:
+                embed = discord.Embed(
+                    title = "Help Menu Expired",
+                    description = "Use `.help` to open a new help menu",
+                    color = discord.Color.gray()
+                )
+                await self.message.edit(embed = embed, view = self)
+            except:
+                pass
 
 class StartView(discord.ui.View):
     def __init__(self, bot):
-        super().__init__(timeout = 300)
+        super().__init__(timeout = 120)
         self.bot = bot
     
     @discord.ui.button(label = "Join SwordSong", style = discord.ButtonStyle.success, emoji = "⚔️")
@@ -163,15 +165,47 @@ class NameInputModal(discord.ui.Modal, title = "Join SwordSong"):
 
 class ProfileView(discord.ui.View):
     def __init__(self, bot, character):
-        super().__init__(timeout = 300)
+        super().__init__(timeout = 120)
         self.bot = bot
         self.character = character
 
     @discord.ui.button(label = "View Inventory", style = discord.ButtonStyle.secondary, emoji = "🎒")
     async def viewInventory(self, interaction: discord.Interaction, button: discord.ui.Button):
         userID = str(interaction.user.id)
+        equipment = self.bot.db.getEquipment(userID)
+        items = self.bot.db.getInventory(userID)
         inventoryView = InventoryView(self.bot, self.character)
-        await inventoryView.showInventory(interaction)
+
+        embed = discord.Embed(
+            title = f"{self.character['name']}'s Inventory",
+            color = discord.Color.blue()
+        )
+
+        equipText = "\n".join([f"{slot.title()}: {item or 'Empty'}" for slot, item in equipment.items()])
+        embed.add_field(
+            name = "🛡️ Equipment 🛡️",
+            value = equipText or "No Equipment",
+            inline = False
+        )
+
+        if items:
+            inventoryText = "\n".join([f"{name}: {qty}" for name, qty in items])
+        else:
+            inventoryText = "Empty"
+
+        embed.add_field(
+            name = "🎒 Items 🎒",
+            value = inventoryText,
+            inline = False
+        )
+        embed.add_field(
+            name = "💰 Coins 💰",
+            value = f"{self.character['coins']} coins",
+            inline = False
+        )
+
+        embed.set_footer(text = f"Current Area: {self.character.get('currentArea', 'forest').capitalize()}")
+        await interaction.response.edit_message(embed = embed, view = inventoryView)
     
     @discord.ui.button(label = "Refresh Stats", style = discord.ButtonStyle.primary, emoji = "🔄")
     async def refreshProfile(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -205,22 +239,25 @@ class ProfileView(discord.ui.View):
 
         await interaction.response.edit_message(embed = embed, view = self)
     
-    @discord.ui.button(label = "Close", style = discord.ButtonStyle.gray, emoji = "❌")
-    async def closeProfile(self, interaction: discord.Interaction, button: discord.ui.Button):
-        embed = discord.Embed(
-            title = "Profile Closed",
-            description = "You stopped looking at your character profile.",
-            color = discord.Color.gray()
-        )
-        await interaction.response.edit_message(embed = embed, view = None)
-    
     async def on_timeout(self):
-        for item in self.children:
-            item.disabled = True
+        try:
+            await self.message.delete()
+        except:
+            for item in self.children:
+                item.disabled = True
+            try:
+                embed = discord.Embed(
+                    title = "Profile Menu Expired",
+                    description = "Use `.profile` to open a new profile menu",
+                    color = discord.Color.gray()
+                )
+                await self.message.edit(embed = embed, view = self)
+            except:
+                pass
 
 class InventoryView(discord.ui.View):
     def __init__(self, bot, character):
-        super().__init__(timeout = 300)
+        super().__init__(timeout = 120)
         self.bot = bot
         self.character = character
 
@@ -288,18 +325,21 @@ class InventoryView(discord.ui.View):
     async def refreshInventory(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self.showInventory(interaction)
     
-    @discord.ui.button(label = "Close", style = discord.ButtonStyle.gray, emoji = "❌")
-    async def closeInventory(self, interaction: discord.Interaction, button: discord.ui.Button):
-        embed = discord.Embed(
-            title = "Inventory Closed",
-            description = "You stopped looking in your backpack.",
-            color = discord.Color.gray()
-        )
-        await interaction.response.edit_message(embed = embed, view = None)
-    
     async def on_timeout(self):
-        for item in self.children:
-            item.disabled = True
+        try:
+            await self.message.delete()
+        except:
+            for item in self.children:
+                item.disabled = True
+            try:
+                embed = discord.Embed(
+                    title = "Inventory Menu Expired",
+                    description = "Use `.inventory` to open a new inventory menu",
+                    color = discord.Color.gray()
+                )
+                await self.message.edit(embed = embed, view = self)
+            except:
+                pass
 
 class LeaveGuildView(discord.ui.View):
     def __init__(self, bot):

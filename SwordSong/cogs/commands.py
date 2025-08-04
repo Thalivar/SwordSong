@@ -25,7 +25,8 @@ class CommandsCog(commands.Cog):
         embed.set_footer(text = "Click the buttons below to explore different command categories")
 
         view = HelpView(self.bot)
-        await ctx.send(embed = embed, view = view)
+        message = await ctx.send(embed = embed, view = view)
+        view.message = message
 
     @commands.command(name = "start")
     async def start(self, ctx):
@@ -79,7 +80,8 @@ class CommandsCog(commands.Cog):
         embed.add_field(name = "\u200b", value = "\u200b", inline = True)
 
         view = ProfileView(self.bot, character)
-        await ctx.send(embed = embed, view = view)
+        message = await ctx.send(embed = embed, view = view)
+        view.message = message
 
     @commands.command(name = "inventory")
     async def inventory(self, ctx):
@@ -126,7 +128,8 @@ class CommandsCog(commands.Cog):
 
         embed.set_footer(text = f"Current Area: {character.get('currentArea', 'forest').capitalize()}")
         view = InventoryView(self.bot, character)
-        await ctx.send(embed = embed, view = view)
+        message = await ctx.send(embed = embed, view = view)
+        view.message = message
     
     @commands.command(name = "leaveguild")
     async def leaveguild(self, ctx):
