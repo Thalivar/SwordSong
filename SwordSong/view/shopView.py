@@ -3,72 +3,6 @@ from discord.ext import commands
 import asyncio
 import math
 
-class BuyItemModal(discord.ui.modal, title = "Buy Item"):
-    def __init__(self, bot, userID, shopView):
-        super().__init__()
-        self.bot = bot
-        self.userID = userID
-        self.shopView = shopView
-    
-    itemName = discord.ui.TextInput(
-        label = "Item Name",
-        placeholder = "Enter the exact name of the item you want to buy...",
-        min_length = 1,
-        max_length= 100
-    )
-
-    async def on_submit(self, interaction: discord.Interaction):
-        character = self.bot.db.getCharacter(self.userID)
-        if not character:
-            embed = discord.Embed(
-                title = "You're not in the guild.",
-                description = "You're not in SwordSong, so you won't have access to guild only equipment and items.",
-                color = discord.Color.red()
-            )
-            await interaction.response.send_message(embed = embed, ephemeral = True)
-            return
-
-        item = next((item for item in self.bot.shopItems if item["name"].lower() == self.itemName.value.lower()), None)
-        if not item:
-            embed = discord.Embed(
-                title = f"We don't have {self.itemName.value} in the store!",
-                description = "We unfortunately don't sell that item here in the shop.",
-                color = discord.Color.orange()
-            )
-            await interaction.response.send_message(embed = embed, ephemeral = True)
-            return
-        
-        if character["coins"] < item["buyPrice"]:
-            embed = discord.Embed(
-                title = "You don't have enough coins!",
-                description = f"You don't have enough coins to buy that item. It costs {item['buyPrice']} and you have {character['coins']} coins!",
-                color = discord.Color.red()
-            )
-            await interaction.response.send_message(embed = embed, ephemeral = True)
-            return
-        
-        if self.bot.db.addItem(self.userID, item["name"], 1):
-            newCoins = character["coins"] - item["buyPrice"]
-            self.bot.db.updateCharacter(self.userID, {"coins": newCoins})
-
-            embed = discord.Embed(
-                title = "Thank you for your purchase!",
-                description = f"You bought **{item['name']}** for {item['buyPrice']} coins!",
-                color = discord.Color.green()
-            )
-            await interaction.response.send_message(embed = embed, ephemeral = True)
-            
-            shopEmbed = self.shopView.createEmbed()
-            await interaction.edit_original_response(embed = shopEmbed, view = self.shopView)
-        else:
-            embed = discord.Embed(
-                title = "Your purchase failed!",
-                description = "There was an error while processing your purchase. Please try again.",
-                color = discord.Color.red()
-            )
-            await interaction.response.send_message(embed = embed, ephemeral = True)
-
-
 class ShopView(discord.ui.View):
     def __init__(self, bot, userID, page = 1):
         super().__init__(timeout = 120)
@@ -154,5 +88,203 @@ class ShopView(discord.ui.View):
     
     @discord.ui.button(label = "🛒 Buy Item", style = discord.ButtonStyle.primary)
     async def buyItem(self, interaction: discord.Interaction, button: discord.ui.Button):
-        modal = buyItemModal(self.bot, self.userID, self)
+        modal = BuyItemModal(self.bot, self.userID, self)
         await interaction.response.send_modal(modal)
+    
+    @discord.ui.button(label = "💰 Sell Item", style = discord.ButtonStyle.success)
+    async def sellItem(self, interaction: discord.Interaction, button: discord.ui.Button):
+        modal = SellItemModal(self.bot, self.userID, self)
+        await interaction.response.send_modal(modal)
+    
+    @discord.ui.button(label = "❌ Close", style = discord.ButtonStyle.danger)
+    async def closeShop(self, interaction: discord.Interaction, button: discord.ui.Button):
+        embed = discord.Embed(
+            title = "The Shop Closed",
+            description = "Thank you for visiting the guild shop!",
+            color = discord.Color.dark_red()
+        )
+        await interaction.response.edit_message(embed = embed, view = None)
+        self.stop()
+    
+    async def on_timeout(self):
+        try:
+            await self.message.delete()
+        except:
+            for item in self.children:
+                item.disabled = True
+            try:
+                embed = discord.Embed(
+                    title = "Shop Menu Expired",
+                    description = "Use `.shop` to open a new shop menu",
+                    color = discord.Color.gray()
+                )
+                await self.message.edit(embed = embed, view = self)
+            except:
+                pass
+
+class BuyItemModal(discord.ui.modal, title = "Buy Item"):
+    def __init__(self, bot, userID, shopView):
+        super().__init__()
+        self.bot = bot
+        self.userID = userID
+        self.shopView = shopView
+    
+    itemName = discord.ui.TextInput(
+        label = "Item Name",
+        placeholder = "Enter the exact name of the item you want to buy...",
+        min_length = 1,
+        max_length= 100
+    )
+
+    async def on_submit(self, interaction: discord.Interaction):
+        character = self.bot.db.getCharacter(self.userID)
+        if not character:
+            embed = discord.Embed(
+                title = "You're not in the guild.",
+                description = "You're not in SwordSong, so you won't have access to guild only equipment and items.",
+                color = discord.Color.red()
+            )
+            await interaction.response.send_message(embed = embed, ephemeral = True)
+            return
+
+        item = next((item for item in self.bot.shopItems if item["name"].lower() == self.itemName.value.lower()), None)
+        if not item:
+            embed = discord.Embed(
+                title = f"We don't have {self.itemName.value} in the store!",
+                description = "We unfortunately don't sell that item here in the shop.",
+                color = discord.Color.orange()
+            )
+            await interaction.response.send_message(embed = embed, ephemeral = True)
+            return
+        
+        if character["coins"] < item["buyPrice"]:
+            embed = discord.Embed(
+                title = "You don't have enough coins!",
+                description = f"You don't have enough coins to buy that item. It costs {item['buyPrice']} and you have {character['coins']} coins!",
+                color = discord.Color.red()
+            )
+            await interaction.response.send_message(embed = embed, ephemeral = True)
+            return
+        
+        if self.bot.db.addItem(self.userID, item["name"], 1):
+            newCoins = character["coins"] - item["buyPrice"]
+            self.bot.db.updateCharacter(self.userID, {"coins": newCoins})
+
+            embed = discord.Embed(
+                title = "Thank you for your purchase!",
+                description = f"You bought **{item['name']}** for {item['buyPrice']} coins!",
+                color = discord.Color.green()
+            )
+            await interaction.response.send_message(embed = embed, ephemeral = True)
+            
+            shopEmbed = self.shopView.createEmbed()
+            await interaction.edit_original_response(embed = shopEmbed, view = self.shopView)
+        else:
+            embed = discord.Embed(
+                title = "Your purchase failed!",
+                description = "There was an error while processing your purchase. Please try again.",
+                color = discord.Color.red()
+            )
+            await interaction.response.send_message(embed = embed, ephemeral = True)
+
+class SellItemModal(discord.ui.Modal, title = "Sell Item"):
+    def __init__(self, bot, userID, shopView):
+        super().__init__()
+        self.bot = bot
+        self.userID = userID
+        self.shopView = shopView
+
+    itemName = discord.ui.TextInput(
+        label = "Item Name",
+        placeholder = "Enter the exact name of the item you want to sell...",
+        min_length = 1,
+        max_length = 100
+    )
+
+    async def on_submit(self, interaction: discord.Interaction):
+        character = self.bot.db.getCharacter(self.userID)
+        inventory = self.bot.db.getInventory(self.userID)
+        inventoryDict = dict(inventory) if inventory else {}    
+        actualItemName = None
+        sellPrice = item.get("sellPrice", 0)
+        item = None
+        removalSuccess = self.bot.db.removeItem(self.userID, actualItemName, 1)
+
+        if not character:
+            embed = discord.Embed(
+                title = "You're not in the guild!",
+                description = "You're not in SwordSong, so you're not allowed to sell things to the guild store.",
+                color = discord.Color.red()
+            )
+            await interaction.response.send_message(embed = embed, ephemeral = True)
+            return
+
+        for invItem, qty in inventoryDict.items():
+            if invItem.lower() == self.itemName.value.lower():
+                actualItemName = invItem
+                break
+        
+        if not actualItemName:
+            embed = discord.Embed(
+                title = "You don't have that item!",
+                description = f"YOu don't have `{self.itemName.value}` in your inventory.",
+                color = discord.Color.red()
+            )
+            await interaction.response.send_message(embed = embed, ephemeral = True)
+            return
+        
+        for shopItem in self.bot.shopItems:
+            if shopItem["name"].lower() == actualItemName.lower():
+                item = shopItem
+                break
+
+        if not item:
+            for area in self.bot.areas.values():
+                for monster in area["monster"]:
+                    loot = monster["lootTable"].get(actualItemName)
+                    if loot:
+                        item = {
+                            "name": actualItemName,
+                            "sellPrice": loot["sellPrice"],
+                            "description": loot["description"]
+                        }
+                        break
+                if item:
+                    break
+        if not item:
+            embed = discord.Embed(
+                title = "That item can't be sold!",
+                description = f"Unfortunatly `{self.itemName.value}` can't be sold here.",
+                color = discord.Color.red()
+            )
+            await interaction.response.send_message(embed = embed, ephemeral = True)
+        
+        if sellPrice <= 0:
+            embed = discord.Embed(
+                title = "That item has no sell value!",
+                description = f"`{self.itemName.value}` cannot be sold as it has no sell price set.",
+                color = discord.Color.red()
+            )
+            await interaction.response.send_message(embed = embed, ephemeral = True)
+            return
+        
+        if removalSuccess:
+            newCoins = character["coins"] + sellPrice
+            self.bot.db.updateCharacter(self.userID, {"coins": newCoins})
+
+            embed = discord.Embed(
+                title = "Item Sold!",
+                description = f"YOu sold **{actualItemName}** for {sellPrice} coins!",
+                color = discord.Color.green()
+            )
+            await interaction.response.send_message(embed = embed, ephemeral = True)
+
+            shopEmbed = self.shopView.createEmbed()
+            await interaction.edit_original_response(embed = shopEmbed, view = self.shopView)
+        else:
+            embed = discord.Embed(
+                title = "Sale failed!",
+                description = "There was an error while processing your sale. Please try again",
+                color = discord.Color.red()
+            )
+            await interaction.response.send_message(embed = embed, ephemeral = True)
