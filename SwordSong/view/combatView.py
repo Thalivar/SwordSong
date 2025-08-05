@@ -33,7 +33,7 @@ class CombatView(discord.ui.View):
         except:
             pass
     
-    def addToCombatLog(self, message, messagType = "info")
+    def addToCombatLog(self, message, messagType = "info"):
         emojis = {
             "playerAttack": "⚔️",
             "monsterAttack": "🔴",
@@ -48,7 +48,7 @@ class CombatView(discord.ui.View):
         if len(self.combatLog) > 4:
             self.combatLog.pop(0)
 
-    def updateEmbed(self), include_log = True:
+    def updateEmbed(self, include_log = True):
         combatState = self.combat.getCombatState(self.userID)
         character = self.db.getCharacter(self.userID)
         if not combatState or not character:
@@ -82,8 +82,8 @@ class CombatView(discord.ui.View):
             logText = "\n".join(self.combatLog)
             embed.add_field(
                 name = "📜 Recent actions 📜",
-                value = logText
-                inline  False
+                value = logText,
+                inline = False
             )
 
         if combatState["turn"] == "player":
@@ -242,7 +242,7 @@ class CombatView(discord.ui.View):
     
     async def handleVictory(self, interaction, monster):
         rewards = self.combat.distributeRewards(self.userID, monster)
-        self.addToCombatLog(f"Victory! You defeated {monster['name']!}", "info")
+        self.addToCombatLog(f"Victory! You defeated {monster['name']}!", "info")
 
         victoryEmbed = self.updateEmbed()
         victoryEmbed.title = "🎉 Victory! 🎉"
