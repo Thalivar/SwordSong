@@ -1,5 +1,6 @@
 from .commandsView import HelpView, StartView, ProfileView, InventoryView, LeaveGuildView, NameInputModal
 from .shopView import ShopView, SellItemModal, BuyItemModal
+from .combatView import CombatView, SkillSelectionView
 
 __all__ = [
     "HelpView",
@@ -10,6 +11,7 @@ __all__ = [
     "NameInputModal",
     "ShopView",
     "SellItemModal",
-    "BuyItemModal"
-
+    "BuyItemModal",
+    "CombatView",
+    "SkillSelectionView"
 ]

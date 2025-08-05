@@ -10,6 +10,7 @@ class CombatView(discord.ui.View):
         self.userID = userID
         self.db = bot.db
         self.combat = bot.combatSystem
+        self.combatLog = []
 
     async def interaction_check(self, interaction: discord.Interaction):
         if str(interaction.user.id) != self.userID:
@@ -31,8 +32,23 @@ class CombatView(discord.ui.View):
             await self.message.edit(embed = embed, view = self)
         except:
             pass
+    
+    def addToCombatLog(self, message, messagType = "info")
+        emojis = {
+            "playerAttack": "⚔️",
+            "monsterAttack": "🔴",
+            "skill": "✨",
+            "heal": "💚",
+            "defense": "🛡️",
+            "flee": "💨",
+            "info": "ℹ️"
+        }
+        emoji = emojis.get(messagType, "•")
+        self.combatLog.append(f"{emoji} {message}")
+        if len(self.combatLog) > 4:
+            self.combatLog.pop(0)
 
-    def updateEmbed(self):
+    def updateEmbed(self), include_log = True:
         combatState = self.combat.getCombatState(self.userID)
         character = self.db.getCharacter(self.userID)
         if not combatState or not character:
@@ -62,13 +78,21 @@ class CombatView(discord.ui.View):
             inline = True
         )
 
+        if include_log and self.combatLog:
+            logText = "\n".join(self.combatLog)
+            embed.add_field(
+                name = "📜 Recent actions 📜",
+                value = logText
+                inline  False
+            )
+
         if combatState["turn"] == "player":
             embed.set_footer(text = "🟢 Your turn - Choose an action!")
         else:
             embed.set_footer(text = "🔴 Monster's turn - Prepare to defend!")
         return embed
     
-    @discord.ui.view(label = "Attack", style = discord.ButtonStyle.danger, emoji = "⚔️")
+    @discord.ui.button(label = "Attack", style = discord.ButtonStyle.danger, emoji = "⚔️")
     async def attackButton(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.defer()
 
@@ -78,12 +102,12 @@ class CombatView(discord.ui.View):
         
         await self.processAttack(interaction)
     
-    @discord.ui.view(label = "Skills", style = discord.ButtonStyle.primary, emoji = "🔥")
+    @discord.ui.button(label = "Skills", style = discord.ButtonStyle.primary, emoji = "🔥")
     async def skillsButton(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.defer()
         await self.showSkillMenu(interaction)
     
-    @discord.ui.view(label = "Flee", style = discord.ButtonStyle.primary, emoji = "🏃")
+    @discord.ui.button(label = "Flee", style = discord.ButtonStyle.primary, emoji = "🏃")
     async def fleeButton(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.defer()
         await self.processFlee(interaction)
@@ -102,21 +126,18 @@ class CombatView(discord.ui.View):
             return
         
         monster = combatState["monster"]
-        embed = discord.Embed(
-            title = "⚔️ Attack Successful! ⚔️",
-            description = result["message"],
-            color = discord.Color.blurple()
+        self.addToCombatLog(
+            f"You dealth {result['damage']} damage to {monster['name']}! ({monster['currentHealth']}/{monster['maxHealth']} HP)",
+            "playerAttack"
         )
-        embed.add_field(
-            name = "Monster's Health",
-            value = f"❤️ {monster['currentHealth']}/{monster['maxHealth']}",
-            inline = True
-        )
-        await interaction.followup.send(embed = embed)
 
         if result.get("monsterDefeated"):
             await self.handleVictory(interaction, monster)
             return
+        
+        updatedEmbed = self.updateEmbed()
+        if updatedEmbed:
+            await interaction.edit_original_response(embed = updatedEmbed, view = self)
         
         await asyncio.sleep(1)
         await self.processMonsterTurn(interaction)
@@ -128,33 +149,22 @@ class CombatView(discord.ui.View):
         character = self.db.getCharacter(self.userID)
 
         if "error" in monsterResult:
-            embed = discord.Embed(
-                title = "Monster's attack failed!",
-                description = monsterResult["error"],
-                color = discord.Color.red()
+            self.addToCombatLog(f"Monster's attack failed: {monsterResult['error']}", "info")
+        else:
+            monster = combatState["monster"]
+            self.addToCombatLog(
+                f"{monster['name']} dealt {monsterResult['damage']} to you! ({monsterResult['playerHealth']}/{character['maxHealth']} HP)",
+                "monsterAttack"
             )
-            await interaction.followup.send(embed = embed)
-            return
-        
-        embed = discord.Embed(
-            title = "Monster's Turn",
-            description = monsterResult["message"],
-            color = discord.Color.dark_red()
-        )
-        embed.add_field(
-            name = f"{character['name']}'s Health",
-            value = f"❤️ {monsterResult['playerHealth']}/{character['maxHealth']}",
-            inline = True
-        )
-        await interaction.followup.send(embed = embed)
 
         if monsterResult.get("playerDefeated"):
-            embed = discord.Embed(
-                title = "💀 Defeat! 💀",
-                description = "You were unfortunatly defeated by the monster. Go get some rest before you start hunting monsters agains.",
-                color = discord.Color.red()
-            )
-            await interaction.followup.send(embed = embed)
+            self.addToCombatLog("You have been defeated!", "info")
+            defeatedEmbed = self.updateEmbed()
+            defeatedEmbed.title = "💀 Defeat! 💀"
+            defeatedEmbed.description = "You were unfortunately defeated by the monster. Go get some rest before you go back hunting monsters."
+            defeatedEmbed.color = discord.Color.red()
+
+            await interaction.edit_original_response(embed = defeatedEmbed, view = None)
             self.combat.endCombat(self.userID)
             self.stop()
             return False
@@ -166,23 +176,46 @@ class CombatView(discord.ui.View):
     
     async def processFlee(self, interaction):
         if random.randint(1, 100) <= 70:
-            embed = discord.Embed(
-                title = "💨 You successfully ran away! 💨",
-                description = "You managed to distract the monster and run away from it!",
-                color = discord.Color.green()
-            )
+            self.addToCombatLog("You successfully escaped from the monster!", "flee")
+
+            fleeEmbed = self.updateEmbed()
+            fleeEmbed.title = "💨 You successfully ran away! 💨"
+            fleeEmbed.description = "YOu manged to distract the monster and run away from it!"
+            fleeEmbed.color = discord.Color.green()
+
+            await interaction.edit_original_response(embed = fleeEmbed, view = None)
             self.combat.endCombat(self.userID)
             self.stop()
-            await interaction.followup.send(embed = embed)
         else:
-            embed = discord.Embed(
-                title = "❌ You couldn't outrun the monster! ❌",
-                description = "The monster was enraged by your measle attempt of a distraction, and went to attack your right away.",
-                color = discord.Color.red()
-            )
-            await interaction.followup.send(embed = embed)
+            self.addToCombatLog("You failed to escape! The monster is enraged!", "info")
+            updatedEmbed = self.updateEmbed()
+            if updatedEmbed:
+                await interaction.edit_original_response(embed = updatedEmbed, view = self)
+            
             await asyncio.sleep(1)
             await self.processMonsterTurn(interaction)
+    
+    async def processSkillUsage(self, interaction, skillName, result):
+        if result.get("damage", 0) > 0:
+            CombatState = self.combat.getCombatState(self.userID)
+            monster = CombatState["monster"]
+            self.addToCombatLog(
+                f"Used {skillName}! Dealth {result['damage']} damage to {monster['name']}",
+                "skill"
+            )
+        elif skillName == "Healing Pulse":
+            self.addToCombatLog(
+                f"Used Healing Pulse! Restored {result.get('healAmount', 0)} HP!",
+                "heal"
+            )
+        elif skillName == "Defensive Stance":
+            self.addToCombatLog("Entered Defensive Stance! Damage reduced!", "defense")
+        else:
+            self.addToCombatLog(f"Used {skillName}!", "skill")
+        
+        updateEmbed = self.updateEmbed()
+        if updateEmbed:
+            await interaction.edit_original_message(embed = updateEmbed, view = self)
     
     async def showSkillMenu(self, interaction):
         character = self.db.getCharacter(self.userID)
@@ -196,7 +229,7 @@ class CombatView(discord.ui.View):
         )
         for skill in availableSkills:
             status = "✅ Ready" if skill["canUse"] else f"❌ Cooldown: {skill['cooldownRemaining']} turns"
-            manaCost = self.combat.defaultSkills[skill["name"]].get("manaCose", 0)
+            manaCost = self.combat.defaultSkills[skill["name"]].get("manaCost", 0)
             manaStatus = "💙" if character.get("mana", 0) >= manaCost else "💔"
             embed.add_field(
                 name = f"{skill['name']} {manaStatus}({manaCost} mana)",
@@ -209,29 +242,29 @@ class CombatView(discord.ui.View):
     
     async def handleVictory(self, interaction, monster):
         rewards = self.combat.distributeRewards(self.userID, monster)
-        embed = discord.Embed(
-            title = "Victory!",
-            description = f"YOu defeated the **{monster['name']}**! And earned {rewards['xp']} XP and {rewards['coins']} coins!",
-            color = discord.Color.green()
-        )
+        self.addToCombatLog(f"Victory! You defeated {monster['name']!}", "info")
+
+        victoryEmbed = self.updateEmbed()
+        victoryEmbed.title = "🎉 Victory! 🎉"
+        victoryEmbed.color = discord.Color.green()
+
+        rewardsText = f"**Rewards Earned:**\n• {rewards['xp']} XP\n• {rewards['coins']} coins"
         if rewards.get("items"):
-            loot = "\n".join([f"{item['quanity']}x {item['name']}" for item in rewards["items"]])
-            embed.add_field(
-                name = "loot",
-                value = loot,
-                inline = False
-            )
-        
+            lootList = [f"• {item['quantity']}x {item['name']}" for item in rewards["items"]]
+            rewardsText += f"\n• **Loot** {', '.join([item['name'] for item in rewards['items']])}"
+
         if rewards.get("levelUP"):
-            embed.add_field(
-                name = "Level up!",
-                value = f"Congratulations! You reached level {rewards['levelUP']['newLevel']}!",
-                inline = False
-            )
-        
+            rewardsText += f"\n• **🎊 LEVEL UP! 🎊 You reached level {rewards['levelUP']['newLevel']}!"
+
+        victoryEmbed.add_field(
+            name = "🏆 Fangs of Fortune 🏆",
+            value = rewardsText,
+            inline = False
+        ) 
+
+        await interaction.edit_original_response(embed = victoryEmbed, view = None)
         self.combat.endCombat(self.userID)
         self.stop()
-        await interaction.followup.send(embed = embed)
 
 class SkillSelectionView(discord.ui.View):
     def __init__(self, bot, userID, combatView, availableSkills):
@@ -247,10 +280,10 @@ class SkillSelectionView(discord.ui.View):
             emoji = skillEmojis[i] if i < len(skillEmojis) else "🎯"
             button = discord.ui.Button(
                 label = skill["name"],
-                emojo = emoji,
+                emoji = emoji,
                 style = discord.ButtonStyle.success if skill["canUse"] else discord.ButtonStyle.secondary,
                 disabled = not skill["canUse"],
-                custom_id = f"skill{skill['name']}"
+                custom_id = f"skill_{skill['name']}"
             )
 
             async def skillCallback(interaction, skillName = skill["name"]):
@@ -271,7 +304,7 @@ class SkillSelectionView(discord.ui.View):
         await interaction.response.defer()
         await interaction.delete_original_response()
     
-    async def userSkill(self, interaction, skillName):
+    async def useSkill(self, interaction, skillName):
         combatState = self.combatView.combat.getCombatState(self.userID)
         if not combatState or combatState["turn"] != "player":
             return
@@ -285,31 +318,9 @@ class SkillSelectionView(discord.ui.View):
             )
             await interaction.followup.send(embed = embed, ephemeral = True)
             return
-
-        skillEmbeds = {
-            "Healing Pulse": ("💚 Healing Pulse 💚", discord.Color.green()),
-            "Defensive Stance": ("🛡️ Defensive Stance 🛡️", discord.Color.blue()),
-            "Fire Ball": ("🔥 Fire Ball 🔥", discord.Color.red()),
-            "Power Strike": ("⚡ Power Strike ⚡", discord.Color.gold())
-        }
-
-        title, color = skillEmbeds.get(result["action"], ("✨ Skill Used ✨", discord.Color.purple()))
-        embed = discord.Embed(
-            title = title,
-            description = result["message"],
-            color = color
-        )
-
-        if result.get("damage", 0) > 0:
-            monster = combatState["monster"]
-            embed.add_field(
-                name = "Monster's Health",
-                value = f"❤️ {monster['currentHealth']}/{monster['maxHealth']}",
-                inline = True
-            )
         
         await interaction.delete_original_response()
-        await interaction.followup.send(embed = embed)
+        await self.combatView.processSkillUsage(interaction, skillName, result)
 
         if result.get("monsterDefeated"):
             await self.combatView.handleVictory(interaction, combatState["monster"])
