@@ -2,6 +2,7 @@ import discord
 import asyncio
 import math
 from discord.ext import commands
+from view.shopView import ShopView
 
 class ShopCog(commands.Cog):
     def __init__(self, bot):
@@ -15,109 +16,18 @@ class ShopCog(commands.Cog):
         print("Shop command was called by:", ctx.author)
         userID = str(ctx.author.id)
         character = self.db.getCharacter(userID)
-        items = self.shopItems
-        perPage = 6
-        total = len(items)
-        pages = (total + perPage - 1) // perPage
-        page  = max(1, min(page, pages))
-        startIDX = (page - 1) * perPage
-        chunk = items[startIDX : startIDX + perPage]
-
-        if not character:      
-            embed=discord.Embed(
+        
+        if not character:
+            embed = discord.Embed(
                 title = "You're not in the guild!",
-                description = "You're not in SwordSong! So you can't use the guild's shop",
+                description = "You're not in SwordSong! So you can't use the guild shop",
                 color = discord.Color.red()
             )
             return await ctx.send(embed = embed)
-
-        embed = discord.Embed(
-            title = f"Guild Shop ({page}/{pages})",
-            color = discord.Color.gold()
-        )
-        embed.add_field(
-            name = "Your coins",
-            value = f"{character['coins']} coins",
-            inline = False
-        )
-
-        for item in chunk:
-            name = item.get("name", "Unknown")
-            price = item.get("buyPrice", 0)
-            type = item.get("type", "misc")
-            description = item.get("description", "")
-            embed.add_field(
-                name=f"{name} — {price} coins",
-                value=f"type: {type}\n{description}",
-                inline=False
-            )
-        msg = await ctx.send(embed=embed)
-
-        if pages > 1:
-            await msg.add_reaction("⬅️")
-            await msg.add_reaction("➡️")
-            await msg.add_reaction("❌")
-
-            def check(r, u):
-                return (
-                    u == ctx.author and
-                    r.message.id == msg.id and
-                    str(r.emoji) in ("⬅️", "➡️", "❌")
-                )
-
-            current   = page - 1
-            while True:
-                try:
-                    reaction, user = await self.bot.wait_for(
-                        "reaction_add", timeout=60, check=check
-                    )
-                    
-                    if str(reaction.emoji) == "❌":
-                        embed = discord.Embed(
-                            title = "Shop Closed",
-                            description = "Thank you for visiting the guild shop!",
-                            color = discord.Color.dark_red()
-                        )
-                        await msg.edit(embed = embed)
-                        await msg.clear_reactions()
-                        break
-                    else:
-                        current = (current + (1 if str(reaction.emoji) == "➡️" else -1)) % pages
-
-                    if str(reaction.emoji) in ("⬅️", "➡️"):
-                        freshUpdate = self.db.getCharacter(userID)
-
-                        newEmbed = discord.Embed(
-                            title=f"Guild Shop ({current + 1}/{pages})",
-                            color=discord.Color.gold()
-                        )
-                        newEmbed.add_field(
-                            name = "💰 Your Coins",
-                            value = f"{freshUpdate['coins']} coins",
-                            inline = False
-                        )
-
-                        for item in items[current * perPage : current * perPage + perPage]:
-                            name = item.get("name", "Unknown")
-                            price = item.get("buyPrice", 0)
-                            type = item.get("type", "misc")
-                            description = item.get("description", "")
-                            newEmbed.add_field(
-                                name = f"{name} — {price} coins",
-                                value = f"type: {type}\n{description}",
-                                inline = False
-                            )
-                        await msg.edit(embed = newEmbed)
-                    await msg.remove_reaction(reaction, user)
-                except asyncio.TimeoutError:
-                    embed = discord.Embed(
-                        title = "Shop Closed",
-                        description = "The shop decided to help someone else while your were deciding what to buy.",
-                        color = discord.Color.orange()
-                    )
-                    await msg.edit(embed = embed)
-                    await msg.clear_reactions()
-                    break
+        
+        view = ShopView(self.bot, userID, page)
+        embed = view.createEmbed()
+        await ctx.send(embed = embed, view = view)
     
     @commands.command(name = "buy")
     async def buy(self, ctx, *, itemName: str):
@@ -147,7 +57,7 @@ class ShopCog(commands.Cog):
         if character["coins"] < item["buyPrice"]:
             embed = discord.Embed(
                 title = "You don't have enough coins on you!",
-                description = f"You don't have enough coins with you to buy that items, it costs {item["buyPrice"]} and you only have {character["coins"]}!",
+                description = f"You don't have enough coins with you to buy that items, it costs {item['buyPrice']} and you only have {character['coins']}!",
                 color = discord.Color.red()
             )
             await ctx.send(embed = embed)

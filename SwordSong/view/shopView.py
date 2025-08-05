@@ -14,11 +14,11 @@ class ShopView(discord.ui.View):
         self.updateButtons()
 
     def updateButtons(self):
-        prevButton = discord.utils.get(self.children, customID = "prevPage")
+        prevButton = discord.utils.get(self.children, custom_id = "prevPage")
         if prevButton:
-            prevButton.is_disabled = self.page <= 1
+            prevButton.disabled = self.page <= 1
         
-        nextButton = discord.utils.get(self.children, customID = "nextPage")
+        nextButton = discord.utils.get(self.children, custom_id = "nextPage")
         if nextButton:
             nextButton.disabled = self.page >= self.totalPages
     
@@ -49,20 +49,20 @@ class ShopView(discord.ui.View):
         currentItems = self.getCurrentItems()
         for item in currentItems:
             name = item.get("name", "Unknown")
-            price = item.get("butPrice", 0)
+            price = item.get("buyPrice", 0)
             itemType = item.get("type", "misc")
-            desciption = item.get("description", "")
+            description = item.get("description", "")
             embed.add_field(
                 name = f"{name} - {price} coins",
                 value = f"Type: {itemType}\n"
-                        f"{desciption}",
+                        f"{description}",
                 inline = False
             )
         
         return embed
     
     async def interaction_check(self, interaction: discord.Interaction):
-        if interaction.user.id != int(self.user.id):
+        if interaction.user.id != int(self.userID):
             await interaction.response.send_message(
                 "This shop interface is not for you!",
                 ephemeral = True
@@ -122,7 +122,7 @@ class ShopView(discord.ui.View):
             except:
                 pass
 
-class BuyItemModal(discord.ui.modal, title = "Buy Item"):
+class BuyItemModal(discord.ui.Modal, title = "Buy Item"):
     def __init__(self, bot, userID, shopView):
         super().__init__()
         self.bot = bot
@@ -203,12 +203,6 @@ class SellItemModal(discord.ui.Modal, title = "Sell Item"):
 
     async def on_submit(self, interaction: discord.Interaction):
         character = self.bot.db.getCharacter(self.userID)
-        inventory = self.bot.db.getInventory(self.userID)
-        inventoryDict = dict(inventory) if inventory else {}    
-        actualItemName = None
-        sellPrice = item.get("sellPrice", 0)
-        item = None
-        removalSuccess = self.bot.db.removeItem(self.userID, actualItemName, 1)
 
         if not character:
             embed = discord.Embed(
@@ -218,6 +212,10 @@ class SellItemModal(discord.ui.Modal, title = "Sell Item"):
             )
             await interaction.response.send_message(embed = embed, ephemeral = True)
             return
+        
+        inventory = self.bot.db.getInventory(self.userID)
+        inventoryDict = dict(inventory) if inventory else {}    
+        actualItemName = None
 
         for invItem, qty in inventoryDict.items():
             if invItem.lower() == self.itemName.value.lower():
@@ -233,6 +231,7 @@ class SellItemModal(discord.ui.Modal, title = "Sell Item"):
             await interaction.response.send_message(embed = embed, ephemeral = True)
             return
         
+        item = None
         for shopItem in self.bot.shopItems:
             if shopItem["name"].lower() == actualItemName.lower():
                 item = shopItem
@@ -240,7 +239,7 @@ class SellItemModal(discord.ui.Modal, title = "Sell Item"):
 
         if not item:
             for area in self.bot.areas.values():
-                for monster in area["monster"]:
+                for monster in area["monsters"]:
                     loot = monster["lootTable"].get(actualItemName)
                     if loot:
                         item = {
@@ -258,7 +257,9 @@ class SellItemModal(discord.ui.Modal, title = "Sell Item"):
                 color = discord.Color.red()
             )
             await interaction.response.send_message(embed = embed, ephemeral = True)
+            return
         
+        sellPrice = item.get("sellPrice", 0)
         if sellPrice <= 0:
             embed = discord.Embed(
                 title = "That item has no sell value!",
@@ -268,6 +269,7 @@ class SellItemModal(discord.ui.Modal, title = "Sell Item"):
             await interaction.response.send_message(embed = embed, ephemeral = True)
             return
         
+        removalSuccess = self.bot.db.removeItem(self.userID, actualItemName, 1)
         if removalSuccess:
             newCoins = character["coins"] + sellPrice
             self.bot.db.updateCharacter(self.userID, {"coins": newCoins})
@@ -279,8 +281,10 @@ class SellItemModal(discord.ui.Modal, title = "Sell Item"):
             )
             await interaction.response.send_message(embed = embed, ephemeral = True)
 
+
             shopEmbed = self.shopView.createEmbed()
             await interaction.edit_original_response(embed = shopEmbed, view = self.shopView)
+
         else:
             embed = discord.Embed(
                 title = "Sale failed!",
