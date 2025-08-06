@@ -1,6 +1,5 @@
 import discord
 import asyncio
-import random
 from discord.ext import commands
 from services.combadsys import combatSystem
 from view.combatView import CombatView
@@ -122,7 +121,7 @@ class CombatCog(commands.Cog):
         message = await ctx.send(embed = embed)
 
         for i in range(ticks):
-            healAmount = int(maxHealth * (percentPerTick / 100))
+            healAmount = int(maxHealth * (percentPerTick / maxHealth))
             newHealth = min(currentHealth + healAmount, maxHealth)
             self.db.updateCharacter(userID, {"health": newHealth})
             currentHealth = newHealth

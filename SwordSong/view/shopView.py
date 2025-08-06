@@ -144,7 +144,7 @@ class BuyItemModal(discord.ui.Modal, title = "Buy Item"):
                 description = "You're not in SwordSong, so you won't have access to guild only equipment and items.",
                 color = discord.Color.red()
             )
-            await interaction.response.send_message(embed = embed, ephemeral = True)
+            await interaction.response.send_message(embed = embed, ephemeral = True, delete_after = 3)
             return
 
         item = next((item for item in self.bot.shopItems if item["name"].lower() == self.itemName.value.lower()), None)
@@ -169,16 +169,23 @@ class BuyItemModal(discord.ui.Modal, title = "Buy Item"):
         if self.bot.db.addItem(self.userID, item["name"], 1):
             newCoins = character["coins"] - item["buyPrice"]
             self.bot.db.updateCharacter(self.userID, {"coins": newCoins})
-
-            embed = discord.Embed(
-                title = "Thank you for your purchase!",
-                description = f"You bought **{item['name']}** for {item['buyPrice']} coins!",
-                color = discord.Color.green()
-            )
-            await interaction.response.send_message(embed = embed, ephemeral = True)
-            
             shopEmbed = self.shopView.createEmbed()
-            await interaction.edit_original_response(embed = shopEmbed, view = self.shopView)
+            shopEmbed.add_field(
+                name = "✅ Purchase Successful! ✅",
+                value = f"You bought **{item['name']}** for {item['buyPrice']} coins!",
+                inline = False
+            )
+            shopEmbed.color = discord.Color.green()
+            
+            await interaction.response.edit_message(embed = shopEmbed, view = self.shopView)
+            await asyncio.sleep(2)
+
+            try:
+                normalEmbed = self.shopView.createEmbed()
+                await interaction.edit_original_response(embed = normalEmbed, view = self.shopView)
+            except:
+                pass
+
         else:
             embed = discord.Embed(
                 title = "Your purchase failed!",
@@ -274,17 +281,22 @@ class SellItemModal(discord.ui.Modal, title = "Sell Item"):
             newCoins = character["coins"] + sellPrice
             self.bot.db.updateCharacter(self.userID, {"coins": newCoins})
 
-            embed = discord.Embed(
-                title = "Item Sold!",
-                description = f"YOu sold **{actualItemName}** for {sellPrice} coins!",
-                color = discord.Color.green()
-            )
-            await interaction.response.send_message(embed = embed, ephemeral = True)
-
-
             shopEmbed = self.shopView.createEmbed()
-            await interaction.edit_original_response(embed = shopEmbed, view = self.shopView)
+            shopEmbed.add_field(
+                name = "💰 Sale Successful! 💰",
+                calue = f"You sold **{actualItemName}** for {sellPrice} coins!",
+                inline = False
+            )
+            shopEmbed.color = discord.Color.green()
+            await interaction.response.edit_message(embed = shopEmbed, view = self.shopView)
+            await asyncio.sleep(2)
 
+            try:
+                normalEmbed = self.shopView.createEmbed()
+                await interaction.edit_original_response(embed = normalEmbed, view = self.shopView)
+            except:
+                pass
+            
         else:
             embed = discord.Embed(
                 title = "Sale failed!",

@@ -127,7 +127,7 @@ class CombatView(discord.ui.View):
         
         monster = combatState["monster"]
         self.addToCombatLog(
-            f"You dealth {result['damage']} damage to {monster['name']}! ({monster['currentHealth']}/{monster['maxHealth']} HP)",
+            f"You dealt {result['damage']} damage to {monster['name']}! ({monster['currentHealth']}/{monster['maxHealth']} HP)",
             "playerAttack"
         )
 
@@ -180,7 +180,7 @@ class CombatView(discord.ui.View):
 
             fleeEmbed = self.updateEmbed()
             fleeEmbed.title = "💨 You successfully ran away! 💨"
-            fleeEmbed.description = "YOu manged to distract the monster and run away from it!"
+            fleeEmbed.description = "You manged to distract the monster and run away from it!"
             fleeEmbed.color = discord.Color.green()
 
             await interaction.edit_original_response(embed = fleeEmbed, view = None)
@@ -194,28 +194,6 @@ class CombatView(discord.ui.View):
             
             await asyncio.sleep(1)
             await self.processMonsterTurn(interaction)
-    
-    async def processSkillUsage(self, interaction, skillName, result):
-        if result.get("damage", 0) > 0:
-            CombatState = self.combat.getCombatState(self.userID)
-            monster = CombatState["monster"]
-            self.addToCombatLog(
-                f"Used {skillName}! Dealth {result['damage']} damage to {monster['name']}",
-                "skill"
-            )
-        elif skillName == "Healing Pulse":
-            self.addToCombatLog(
-                f"Used Healing Pulse! Restored {result.get('healAmount', 0)} HP!",
-                "heal"
-            )
-        elif skillName == "Defensive Stance":
-            self.addToCombatLog("Entered Defensive Stance! Damage reduced!", "defense")
-        else:
-            self.addToCombatLog(f"Used {skillName}!", "skill")
-        
-        updateEmbed = self.updateEmbed()
-        if updateEmbed:
-            await interaction.edit_original_message(embed = updateEmbed, view = self)
     
     async def showSkillMenu(self, interaction):
         character = self.db.getCharacter(self.userID)
@@ -320,11 +298,33 @@ class SkillSelectionView(discord.ui.View):
             return
         
         await interaction.delete_original_response()
-        await self.combatView.processSkillUsage(interaction, skillName, result)
-
+        if result.get("damage", 0) > 0:
+            CombatState = self.combatView.combat.getCombatState(self.userID)
+            monster = CombatState["monster"]
+            self.combatView.addToCombatLog(
+                f"Used {skillName}! Dealth {result['damage']} damage to {monster['name']}",
+                "skill"
+            )
+        elif skillName == "Healing Pulse":
+            self.combatView.addToCombatLog(
+                f"Used Healing Pulse! Restored {result.get('healAmount', 0)} HP!",
+                "heal"
+            )
+        elif skillName == "Defensive Stance":
+            self.combatView.addToCombatLog("Entered Defensive Stance! Damage reduced!", "defense")
+        else:
+            self.combatView.addToCombatLog(f"Used {skillName}!", "skill")
+        
         if result.get("monsterDefeated"):
-            await self.combatView.handleVictory(interaction, combatState["monster"])
-            return
-
+            combatState = self.combatView.combat.getCombatState(self.userID)
+            if combatState:
+                await self.combatView.handleVictory(interaction, combatState["monster"])
+                return
+        
+        updateEmbed = self.combatView.updateEmbed()
+        if updateEmbed:
+            await interaction.message.edit(embed = updateEmbed, view = self.combatView)
+        
         await asyncio.sleep(1)
         await self.combatView.processMonsterTurn(interaction)
+        

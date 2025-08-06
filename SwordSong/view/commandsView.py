@@ -189,20 +189,45 @@ class ProfileView(discord.ui.View):
         )
 
         if items:
-            inventoryText = "\n".join([f"{name}: {qty}" for name, qty in items])
-        else:
-            inventoryText = "Empty"
+            itemsList = [f"{name}: {qty}" for name, qty in items]
+            if len(itemsList) > 10:
+                mid = len(itemsList) // 2
+                firstHalf = "\n".join(itemsList[:mid])
+                secondHalf = "\n".join(itemsList[mid:])
 
-        embed.add_field(
-            name = "🎒 Items 🎒",
-            value = inventoryText,
-            inline = False
-        )
-        embed.add_field(
-            name = "💰 Coins 💰",
-            value = f"{self.character['coins']} coins",
-            inline = False
-        )
+                embed.add_field(
+                    name = "🎒 Items ",
+                    value = firstHalf,
+                    inline = True
+                )
+                embed.add_field(
+                    name = " Items 🎒",
+                    value = secondHalf,
+                    inline = True
+                )
+            else:
+                embed.add_field(
+                    name = "🎒 Items 🎒",
+                    value = "\n".join(itemsList),
+                    inline = True
+                )
+            
+            embed.add_field(
+                name = "💰 Coins 💰",
+                value = f"{self.character['coins']} coins",
+                inline = False
+            )
+        else:
+            embed.add_field(
+                name = "🎒 Items 🎒",
+                value = "Empty",
+                inline = True
+            )
+            embed.add_field(
+                name = "💰 Coins 💰",
+                value = f"{self.character['coins']} coins",
+                inline = False
+            )
 
         embed.set_footer(text = f"Current Area: {self.character.get('currentArea', 'forest').capitalize()}")
         await interaction.response.edit_message(embed = embed, view = inventoryView)
@@ -279,20 +304,45 @@ class InventoryView(discord.ui.View):
         )
 
         if items:
-            inventoryText = "\n".join([f"{name}: {qty}" for name, qty in items])
-        else:
-            inventoryText = "Empty"
+            itemsList = [f"{name}: {qty}" for name, qty in items]
+            if len(itemsList) > 10:
+                mid = len(itemsList) // 2
+                firstHalf = "\n".join(itemsList[:mid])
+                secondHalf = "\n".join(itemsList[mid:])
 
-        embed.add_field(
-            name = "🎒 Items 🎒",
-            value = inventoryText,
-            inline = False
-        )
-        embed.add_field(
-            name = "💰 Coins 💰",
-            value = f"{self.character['coins']} coins",
-            inline = False
-        )
+                embed.add_field(
+                    name = "🎒 Items ",
+                    value = firstHalf,
+                    inline = True
+                )
+                embed.add_field(
+                    name = " Items 🎒",
+                    value = secondHalf,
+                    inline = True
+                )
+            else:
+                embed.add_field(
+                    name = "🎒 Items 🎒",
+                    value = "\n".join(itemsList),
+                    inline = True
+                )
+            
+            embed.add_field(
+                name = "💰 Coins 💰",
+                value = f"{self.character['coins']} coins",
+                inline = False
+            )
+        else:
+            embed.add_field(
+                name = "🎒 Items 🎒",
+                value = "Empty",
+                inline = True
+            )
+            embed.add_field(
+                name = "💰 Coins 💰",
+                value = f"{self.character['coins']} coins",
+                inline = False
+            )
 
         embed.set_footer(text = f"Current Area: {self.character.get('currentArea', 'forest').capitalize()}")
         await interaction.response.edit_message(embed = embed, view = self)
