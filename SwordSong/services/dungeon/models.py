@@ -1,7 +1,9 @@
 from enum import Enum
 from dataclasses import dataclass
-from typing import Dict
-from .config import RoomData
+from typing import Dict, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .config import RoomData
 
 class RoomType(Enum):
     ENTRANCE = "entrance"

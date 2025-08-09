@@ -21,5 +21,6 @@ intents.message_content = True
 initialExtensions = [
     "cogs.combat",
     "cogs.commands",
-    "cogs.shop"
+    "cogs.shop",
+    "cogs.dungeon"
 ]

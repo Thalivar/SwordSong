@@ -20,5 +20,6 @@ class DungeonConfig:
 
     def __post_init__(self):
         if not self.roomData:
+            from .defaults import defaultRoomData
             self.roomData = defaultRoomData.copy()
 

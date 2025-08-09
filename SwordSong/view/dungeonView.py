@@ -85,7 +85,7 @@ class DungeonView(discord.ui.View):
         )
 
         directions = []
-        for direction in canMove in currentRoom.connections.items():
+        for direction, canMove in currentRoom.connections.items():
             if canMove:
                 directions.append(f"➡️ {direction.title()}")
         
@@ -122,14 +122,14 @@ class DungeonView(discord.ui.View):
         await self.movePlayer(interaction, "south")
     
     @discord.ui.button(label = "Interact", style = discord.ButtonStyle.primary, emoji = "🔍", row = 1)
-    async def interactButton(self, interaction: discord.interaction, button: discord.ui.Button):
+    async def interactButton(self, interaction: discord.Interaction, button: discord.ui.Button):
         self.interactWithRoom(interaction)
     
     @discord.ui.button(label = "Leave Dungeon", style = discord.ButtonStyle.danger, emoji = "🚪", row = 3)
     async def leaveButton(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self.leaveDungeon(interaction)
     
-    async def movePlayer(self, interaction: discord.Integration, direction: str):
+    async def movePlayer(self, interaction: discord.Interaction, direction: str):
         await interaction.response.defer()
 
         currentRoom = self.dungeon.currentRoom
@@ -201,11 +201,11 @@ class DungeonView(discord.ui.View):
         coinsFound = random.randint(20, 100)
         self.db.updateCharacter(self.userID, {"coins": character["coins"] + coinsFound})
         room.clear()
-        self.addToActionLog(f"Foind {coinsFound} coins in a treasure chest!")
+        self.addToActionLog(f"Found {coinsFound} coins in a treasure chest!")
         embed = discord.Embed(
             title = "💰 Treasure Found! 💰",
             description = f"You found a treasure chest containing {coinsFound} coins!",
-            colo = discord.Color.gold()
+            color = discord.Color.gold()
         )
         await interaction.followup.send(embed = embed, ephemeral = True)
 
@@ -286,7 +286,7 @@ class DungeonView(discord.ui.View):
         )
         await interaction.followup.send(embed = embed, ephemeral = True)
     
-    async def handlePuzzleRoom(self, interaction: discord.interactions, room, character):
+    async def handlePuzzleRoom(self, interaction: discord.Interactions, room, character):
         correctAnswer = random.randint(1, 3)
         userGuess = random.randint(1, 3)
 
@@ -297,7 +297,7 @@ class DungeonView(discord.ui.View):
 
             embed = discord.Embed(
                 title = "🧩 Puzzle Solved! 🧩",
-                description = f"You solved the ancient puzzle and recieved {reward} coins!",
+                description = f"You solved the ancient puzzle and received {reward} coins!",
                 color = discord.Color.purple()
             )
         else:

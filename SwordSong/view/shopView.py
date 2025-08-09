@@ -284,7 +284,7 @@ class SellItemModal(discord.ui.Modal, title = "Sell Item"):
             shopEmbed = self.shopView.createEmbed()
             shopEmbed.add_field(
                 name = "💰 Sale Successful! 💰",
-                calue = f"You sold **{actualItemName}** for {sellPrice} coins!",
+                value = f"You sold **{actualItemName}** for {sellPrice} coins!",
                 inline = False
             )
             shopEmbed.color = discord.Color.green()

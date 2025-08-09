@@ -27,8 +27,8 @@ class MiniDungeon:
         entrance = Position(0, y0)
         treasure = Position(self.size - 1, y1)
         roomData = self.config.roomData
-        self.rooms[entrance] = Room(RoomType.ENTRANCE, entrance, roomData(RoomType.ENTRANCE))
-        self.rooms[treasure] = Room(RoomType.TREASURE, treasure, roomData(RoomType.TREASURE))
+        self.rooms[entrance] = Room(RoomType.ENTRANCE, entrance, roomData[RoomType.ENTRANCE])
+        self.rooms[treasure] = Room(RoomType.TREASURE, treasure, roomData[RoomType.TREASURE])
         self.playerPos = entrance
         self.rooms[entrance].visit()
 
@@ -54,14 +54,17 @@ class MiniDungeon:
             return False
         
         target = current.neighbors()[direction]
-        if not target in self.rooms:
+        if target in self.rooms:
             self.playerPos = target
             self.rooms[target].visit()
             return True
         return False
     
     @property
-    def currentRoom(self) -> str:
+    def currentRoom(self) -> Room:
+        return self.rooms.get(self.playerPos)
+    
+    def getASCII(self) -> str:
         out = []
         for y in range(self.size):
             line = ""
